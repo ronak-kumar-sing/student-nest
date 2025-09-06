@@ -31,8 +31,9 @@ export default function StudentLoginPage() {
 
       if (res.ok) {
         toast.success("Welcome back!")
-        // Store token and redirect to dashboard
-        localStorage.setItem("token", data.token)
+        // Store token and user data, then redirect to dashboard
+        localStorage.setItem("token", data.data.token)
+        localStorage.setItem("user", JSON.stringify(data.data.user))
         window.location.href = "/dashboard"
       } else {
         toast.error(data.error || "Login failed. Please check your credentials.")
