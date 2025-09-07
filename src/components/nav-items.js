@@ -10,7 +10,8 @@ import {
 
 export const NAV_ITEMS = [
   { label: "Home", href: "/dashboard", icon: Home },
-  { label: "Visiting Schedule", href: "/dashboard/visiting-schedule", icon: CalendarClock },
+  { label: "Visiting Schedule", href: "/dashboard/visiting-schedule", icon: CalendarClock, roles: ["student"] },
+  { label: "Visit Requests", href: "/owner/visits", icon: CalendarClock, roles: ["owner"] },
   { label: "Messages", href: "/dashboard/messages", icon: MessagesSquare },
   { label: "Saved", href: "/dashboard/saved", icon: Bookmark, roles: ["student"] },
   { label: "Post Room", href: "/dashboard/post-room", icon: Plus, roles: ["owner"] },

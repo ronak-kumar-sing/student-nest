@@ -135,6 +135,46 @@ class ApiClient {
     });
   }
 
+  // Meeting methods
+  async scheduleMeeting(meetingData) {
+    return this.request('/meetings/schedule', {
+      method: 'POST',
+      body: meetingData,
+    });
+  }
+
+  async getStudentMeetings(studentId) {
+    return this.request(`/meetings/schedule?studentId=${studentId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getOwnerMeetings(ownerId) {
+    return this.request(`/meetings/schedule?ownerId=${ownerId}`, {
+      method: 'GET',
+    });
+  }
+
+  async respondToMeeting(meetingId, responseData) {
+    return this.request(`/meetings/${meetingId}/respond`, {
+      method: 'PUT',
+      body: responseData,
+    });
+  }
+
+  async acceptMeetingTime(meetingId, timeSlotId) {
+    return this.request(`/meetings/${meetingId}/accept-time`, {
+      method: 'PUT',
+      body: { timeSlotId },
+    });
+  }
+
+  async getMeetingDetails(meetingId) {
+    return this.request(`/meetings/${meetingId}/respond`, {
+      method: 'GET',
+    });
+  }
+
   // Logout
   logout() {
     this.clearToken();
@@ -157,5 +197,11 @@ export const {
   verifyPhoneOtp,
   initiateAadhaarVerification,
   initiateDigiLockerVerification,
+  scheduleMeeting,
+  getStudentMeetings,
+  getOwnerMeetings,
+  respondToMeeting,
+  acceptMeetingTime,
+  getMeetingDetails,
   logout,
 } = apiClient;
