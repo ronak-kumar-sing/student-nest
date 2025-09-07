@@ -135,6 +135,102 @@ class ApiClient {
     });
   }
 
+  // Profile methods
+  async getStudentProfile() {
+    return this.request('/profile/student', {
+      method: 'GET',
+    });
+  }
+
+  async updateStudentProfile(profileData) {
+    return this.request('/profile/student', {
+      method: 'PUT',
+      body: profileData,
+    });
+  }
+
+  async getStudentPreferences() {
+    return this.request('/profile/student/preferences', {
+      method: 'GET',
+    });
+  }
+
+  async updateStudentPreferences(preferences) {
+    return this.request('/profile/student/preferences', {
+      method: 'PUT',
+      body: preferences,
+    });
+  }
+
+  async getStudentVerification() {
+    return this.request('/profile/student/verification', {
+      method: 'GET',
+    });
+  }
+
+  async uploadStudentVerification(formData) {
+    return this.request('/profile/student/verification', {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Remove Content-Type to let browser set it for FormData
+    });
+  }
+
+  async getOwnerProfile() {
+    return this.request('/profile/owner', {
+      method: 'GET',
+    });
+  }
+
+  async updateOwnerProfile(profileData) {
+    return this.request('/profile/owner', {
+      method: 'PUT',
+      body: profileData,
+    });
+  }
+
+  async getOwnerVerification() {
+    return this.request('/profile/owner/verification', {
+      method: 'GET',
+    });
+  }
+
+  async uploadOwnerVerification(formData) {
+    return this.request('/profile/owner/verification', {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Remove Content-Type to let browser set it for FormData
+    });
+  }
+
+  async uploadAvatar(formData) {
+    return this.request('/upload/avatar', {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Remove Content-Type to let browser set it for FormData
+    });
+  }
+
+  async changePassword(passwordData) {
+    return this.request('/profile/password', {
+      method: 'PUT',
+      body: passwordData,
+    });
+  }
+
+  async getNotificationSettings() {
+    return this.request('/profile/settings/notifications', {
+      method: 'GET',
+    });
+  }
+
+  async updateNotificationSettings(settings) {
+    return this.request('/profile/settings/notifications', {
+      method: 'PUT',
+      body: settings,
+    });
+  }
+
   // Meeting methods
   async scheduleMeeting(meetingData) {
     return this.request('/meetings/schedule', {
@@ -175,6 +271,60 @@ class ApiClient {
     });
   }
 
+  // Student Settings methods
+  async getStudentSettings() {
+    return this.request('/profile/settings/student', {
+      method: 'GET',
+    });
+  }
+
+  async updateStudentSettings(settingsData) {
+    return this.request('/profile/settings/student', {
+      method: 'PUT',
+      body: settingsData,
+    });
+  }
+
+  async deleteStudentAccount() {
+    return this.request('/profile/student', {
+      method: 'DELETE',
+    });
+  }
+
+  // Owner Business methods
+  async getOwnerBusiness() {
+    return this.request('/profile/owner/business', {
+      method: 'GET',
+    });
+  }
+
+  async updateOwnerBusiness(businessData) {
+    return this.request('/profile/owner/business', {
+      method: 'PUT',
+      body: businessData,
+    });
+  }
+
+  // Owner Settings methods
+  async getOwnerSettings() {
+    return this.request('/profile/settings/owner', {
+      method: 'GET',
+    });
+  }
+
+  async updateOwnerSettings(settingsData) {
+    return this.request('/profile/settings/owner', {
+      method: 'PUT',
+      body: settingsData,
+    });
+  }
+
+  async deleteOwnerAccount() {
+    return this.request('/profile/owner', {
+      method: 'DELETE',
+    });
+  }
+
   // Logout
   logout() {
     this.clearToken();
@@ -186,22 +336,42 @@ const apiClient = new ApiClient();
 
 export default apiClient;
 
-// Export individual methods for convenience
-export const {
-  login,
-  studentSignup,
-  ownerSignup,
-  sendEmailOtp,
-  verifyEmailOtp,
-  sendPhoneOtp,
-  verifyPhoneOtp,
-  initiateAadhaarVerification,
-  initiateDigiLockerVerification,
-  scheduleMeeting,
-  getStudentMeetings,
-  getOwnerMeetings,
-  respondToMeeting,
-  acceptMeetingTime,
-  getMeetingDetails,
-  logout,
-} = apiClient;
+// Export individual methods for convenience with proper binding
+export const login = apiClient.login.bind(apiClient);
+export const studentSignup = apiClient.studentSignup.bind(apiClient);
+export const ownerSignup = apiClient.ownerSignup.bind(apiClient);
+export const sendEmailOtp = apiClient.sendEmailOtp.bind(apiClient);
+export const verifyEmailOtp = apiClient.verifyEmailOtp.bind(apiClient);
+export const sendPhoneOtp = apiClient.sendPhoneOtp.bind(apiClient);
+export const verifyPhoneOtp = apiClient.verifyPhoneOtp.bind(apiClient);
+export const initiateAadhaarVerification = apiClient.initiateAadhaarVerification.bind(apiClient);
+export const initiateDigilockerVerification = apiClient.initiateDigiLockerVerification.bind(apiClient);
+export const getStudentProfile = apiClient.getStudentProfile.bind(apiClient);
+export const updateStudentProfile = apiClient.updateStudentProfile.bind(apiClient);
+export const getStudentPreferences = apiClient.getStudentPreferences.bind(apiClient);
+export const updateStudentPreferences = apiClient.updateStudentPreferences.bind(apiClient);
+export const getStudentSettings = apiClient.getStudentSettings.bind(apiClient);
+export const updateStudentSettings = apiClient.updateStudentSettings.bind(apiClient);
+export const deleteStudentAccount = apiClient.deleteStudentAccount.bind(apiClient);
+export const getStudentVerification = apiClient.getStudentVerification.bind(apiClient);
+export const uploadStudentVerification = apiClient.uploadStudentVerification.bind(apiClient);
+export const getOwnerProfile = apiClient.getOwnerProfile.bind(apiClient);
+export const updateOwnerProfile = apiClient.updateOwnerProfile.bind(apiClient);
+export const getOwnerBusiness = apiClient.getOwnerBusiness.bind(apiClient);
+export const updateOwnerBusiness = apiClient.updateOwnerBusiness.bind(apiClient);
+export const getOwnerSettings = apiClient.getOwnerSettings.bind(apiClient);
+export const updateOwnerSettings = apiClient.updateOwnerSettings.bind(apiClient);
+export const deleteOwnerAccount = apiClient.deleteOwnerAccount.bind(apiClient);
+export const getOwnerVerification = apiClient.getOwnerVerification.bind(apiClient);
+export const uploadOwnerVerification = apiClient.uploadOwnerVerification.bind(apiClient);
+export const uploadAvatar = apiClient.uploadAvatar.bind(apiClient);
+export const changePassword = apiClient.changePassword.bind(apiClient);
+export const getNotificationSettings = apiClient.getNotificationSettings.bind(apiClient);
+export const updateNotificationSettings = apiClient.updateNotificationSettings.bind(apiClient);
+export const scheduleMeeting = apiClient.scheduleMeeting.bind(apiClient);
+export const getStudentMeetings = apiClient.getStudentMeetings.bind(apiClient);
+export const getOwnerMeetings = apiClient.getOwnerMeetings.bind(apiClient);
+export const respondToMeeting = apiClient.respondToMeeting.bind(apiClient);
+export const acceptMeetingTime = apiClient.acceptMeetingTime.bind(apiClient);
+export const getMeetingDetails = apiClient.getMeetingDetails.bind(apiClient);
+export const logout = apiClient.logout.bind(apiClient);
