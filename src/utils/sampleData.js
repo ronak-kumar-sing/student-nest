@@ -294,4 +294,192 @@ export const SAMPLE_ROOMS = [
   }
 ];
 
+// Sample user data for authentication and profile demonstration
+export const sampleUsers = [
+  {
+    id: "user_001",
+    email: "john.doe@du.ac.in",
+    password: "password123", // In real app, this would be hashed
+    role: "student",
+    firstName: "John",
+    lastName: "Doe",
+    name: "John Doe",
+    phone: "+91 98765 43210",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: true,
+    college: "Delhi University",
+    yearOfStudy: "3rd",
+    course: "Computer Science",
+    savedProperties: 5,
+    meetingRequests: 3,
+    profileCompleteness: 85,
+    verification: {
+      email: true,
+      phone: true,
+      collegeId: "verified"
+    },
+    profile: {
+      bio: "Computer Science student at Delhi University looking for accommodation near campus.",
+      preferences: {
+        roomType: ["single", "shared"],
+        budgetRange: [8000, 15000],
+        location: ["North Campus", "Central Delhi"],
+        amenities: ["wifi", "parking", "security"]
+      }
+    },
+    createdAt: "2024-01-15T10:00:00Z",
+    updatedAt: "2024-12-20T08:30:00Z"
+  },
+  {
+    id: "user_002",
+    email: "priya.sharma@student.jnu.ac.in",
+    password: "securepass456",
+    role: "student",
+    firstName: "Priya",
+    lastName: "Sharma",
+    name: "Priya Sharma",
+    phone: "+91 87654 32109",
+    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?auto=format&fit=crop&w=150&h=150&q=80",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: false,
+    college: "Jawaharlal Nehru University",
+    yearOfStudy: "2nd",
+    course: "International Relations",
+    savedProperties: 8,
+    meetingRequests: 2,
+    profileCompleteness: 75,
+    verification: {
+      email: true,
+      phone: false,
+      collegeId: "pending"
+    },
+    profile: {
+      bio: "International Relations student seeking a quiet place to study and live.",
+      preferences: {
+        roomType: ["single"],
+        budgetRange: [12000, 20000],
+        location: ["South Delhi", "Central Delhi"],
+        amenities: ["wifi", "study_room", "library_access"]
+      }
+    },
+    createdAt: "2024-02-10T14:20:00Z",
+    updatedAt: "2024-12-18T16:45:00Z"
+  },
+  {
+    id: "user_003",
+    email: "rajesh.property@gmail.com",
+    password: "owner123secure",
+    role: "owner",
+    firstName: "Rajesh",
+    lastName: "Kumar",
+    name: "Rajesh Kumar",
+    phone: "+91 99887 76655",
+    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&h=150&q=80",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: true,
+    businessName: "Kumar Properties",
+    businessType: "individual",
+    experience: 8,
+    totalProperties: 12,
+    totalBookings: 156,
+    averageRating: 4.3,
+    responseTime: 2,
+    verification: {
+      email: true,
+      phone: true,
+      aadhaar: "verified",
+      pan: "verified",
+      digilocker: true
+    },
+    profile: {
+      bio: "Experienced property owner providing quality accommodation for students in Delhi.",
+      businessDetails: {
+        gstNumber: "07AAAAA0000A1Z5",
+        businessAddress: "Karol Bagh, New Delhi",
+        specializations: ["student_housing", "pg_accommodation"]
+      }
+    },
+    createdAt: "2023-08-05T09:15:00Z",
+    updatedAt: "2024-12-21T11:20:00Z"
+  },
+  {
+    id: "user_004",
+    email: "sarah.wilson@student.iitd.ac.in",
+    password: "iitdstudent789",
+    role: "student",
+    firstName: "Sarah",
+    lastName: "Wilson",
+    name: "Sarah Wilson",
+    phone: "+91 76543 21098",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&h=150&q=80",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: true,
+    college: "Indian Institute of Technology Delhi",
+    yearOfStudy: "1st",
+    course: "Mechanical Engineering",
+    savedProperties: 3,
+    meetingRequests: 1,
+    profileCompleteness: 90,
+    verification: {
+      email: true,
+      phone: true,
+      collegeId: "verified"
+    },
+    profile: {
+      bio: "First-year Mechanical Engineering student at IIT Delhi looking for accommodation.",
+      preferences: {
+        roomType: ["single"],
+        budgetRange: [15000, 25000],
+        location: ["Hauz Khas", "South Delhi"],
+        amenities: ["wifi", "gym", "security", "parking"]
+      }
+    },
+    createdAt: "2024-07-01T12:30:00Z",
+    updatedAt: "2024-12-19T14:15:00Z"
+  },
+  {
+    id: "user_005",
+    email: "anita.homes@business.com",
+    password: "business2024",
+    role: "owner",
+    firstName: "Anita",
+    lastName: "Singh",
+    name: "Anita Singh",
+    phone: "+91 88776 65544",
+    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&h=150&q=80",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: true,
+    businessName: "Anita Student Homes",
+    businessType: "company",
+    experience: 5,
+    totalProperties: 8,
+    totalBookings: 89,
+    averageRating: 4.1,
+    responseTime: 3,
+    verification: {
+      email: true,
+      phone: true,
+      aadhaar: "in_review",
+      pan: "verified",
+      digilocker: false
+    },
+    profile: {
+      bio: "Dedicated to providing safe and comfortable housing solutions for female students.",
+      businessDetails: {
+        gstNumber: "07BBBBB1111B2Z6",
+        businessAddress: "Lajpat Nagar, New Delhi",
+        specializations: ["female_only", "secure_accommodation"]
+      }
+    },
+    createdAt: "2023-11-20T16:45:00Z",
+    updatedAt: "2024-12-20T10:00:00Z"
+  }
+];
+
 export default SAMPLE_ROOMS;
