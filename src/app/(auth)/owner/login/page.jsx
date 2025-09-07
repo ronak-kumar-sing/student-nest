@@ -30,13 +30,16 @@ export default function OwnerLoginPage() {
       const data = await res.json()
 
       if (res.ok) {
-        if (data.user.verificationStatus === "pending") {
+        if (data.data.user.verificationStatus === "pending") {
           toast.info("Please complete your verification process.")
+          localStorage.setItem("token", data.data.token)
+          localStorage.setItem("user", JSON.stringify(data.data.user))
           window.location.href = "/owner/verify"
-        } else if (data.user.verificationStatus === "verified") {
+        } else if (data.data.user.verificationStatus === "verified") {
           toast.success("Welcome back!")
-          localStorage.setItem("token", data.token)
-          window.location.href = "/owner/dashboard"
+          localStorage.setItem("token", data.data.token)
+          localStorage.setItem("user", JSON.stringify(data.data.user))
+          window.location.href = "/dashboard"
         } else {
           toast.warning("Your account is under review. Please wait for verification.")
         }
