@@ -17,16 +17,16 @@ export class User {
     this.phoneVerified = userData.phoneVerified ?? false;
     this.createdAt = userData.createdAt || new Date().toISOString();
     this.updatedAt = userData.updatedAt || new Date().toISOString();
-    
+
     // Role-specific data
     if (userData.profile) {
       this.profile = userData.profile;
     }
-    
+
     if (userData.verification) {
       this.verification = userData.verification;
     }
-    
+
     // Student-specific fields
     if (this.role === 'student') {
       this.college = userData.college;
@@ -36,7 +36,7 @@ export class User {
       this.meetingRequests = userData.meetingRequests || 0;
       this.profileCompleteness = userData.profileCompleteness || 0;
     }
-    
+
     // Owner-specific fields
     if (this.role === 'owner') {
       this.businessName = userData.businessName;
@@ -52,37 +52,37 @@ export class User {
   // Validation method
   static validate(userData) {
     const errors = [];
-    
+
     // Required fields
     if (!userData.email) {
       errors.push('Email is required');
     } else if (!this.isValidEmail(userData.email)) {
       errors.push('Invalid email format');
     }
-    
+
     if (!userData.password) {
       errors.push('Password is required');
     } else if (userData.password.length < 6) {
       errors.push('Password must be at least 6 characters long');
     }
-    
+
     if (!userData.firstName) {
       errors.push('First name is required');
     }
-    
+
     if (!userData.lastName) {
       errors.push('Last name is required');
     }
-    
+
     if (!userData.role || !['student', 'owner'].includes(userData.role)) {
       errors.push('Valid role (student or owner) is required');
     }
-    
+
     // Phone validation if provided
     if (userData.phone && !this.isValidPhone(userData.phone)) {
       errors.push('Invalid phone number format');
     }
-    
+
     return {
       isValid: errors.length === 0,
       errors
@@ -121,14 +121,14 @@ export class User {
       emailVerified: this.emailVerified,
       phoneVerified: this.phoneVerified,
       createdAt: this.createdAt,
-      
+
       // Role-specific public data
       ...(this.role === 'student' && {
         college: this.college,
         yearOfStudy: this.yearOfStudy,
         course: this.course
       }),
-      
+
       ...(this.role === 'owner' && {
         businessName: this.businessName,
         businessType: this.businessType,
@@ -144,16 +144,16 @@ export class User {
     // Only allow certain fields to be updated
     const allowedUpdates = [
       'firstName', 'lastName', 'name', 'phone', 'avatar',
-      'college', 'yearOfStudy', 'course', 'businessName', 
+      'college', 'yearOfStudy', 'course', 'businessName',
       'businessType', 'experience', 'profile', 'verification'
     ];
-    
+
     allowedUpdates.forEach(field => {
       if (updates[field] !== undefined) {
         this[field] = updates[field];
       }
     });
-    
+
     this.updatedAt = new Date().toISOString();
     return this;
   }
@@ -161,7 +161,7 @@ export class User {
   // Check if user has specific verification
   hasVerification(type) {
     if (!this.verification) return false;
-    
+
     switch (type) {
       case 'email':
         return this.emailVerified;
@@ -182,10 +182,10 @@ export class User {
 
   // Calculate profile completeness percentage
   getProfileCompleteness() {
-    const requiredFields = this.role === 'student' 
+    const requiredFields = this.role === 'student'
       ? ['firstName', 'lastName', 'email', 'phone', 'college', 'yearOfStudy', 'course']
       : ['firstName', 'lastName', 'email', 'phone', 'businessName', 'businessType'];
-    
+
     const completedFields = requiredFields.filter(field => this[field]);
     return Math.round((completedFields.length / requiredFields.length) * 100);
   }

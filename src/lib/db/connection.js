@@ -26,7 +26,7 @@ class MockDatabase {
       updatedAt: new Date().toISOString(),
       ...userData
     };
-    
+
     this.users.push(newUser);
     return newUser;
   }
@@ -34,20 +34,20 @@ class MockDatabase {
   updateUser(id, updates) {
     const userIndex = this.users.findIndex(user => user.id === id);
     if (userIndex === -1) return null;
-    
+
     this.users[userIndex] = {
       ...this.users[userIndex],
       ...updates,
       updatedAt: new Date().toISOString()
     };
-    
+
     return this.users[userIndex];
   }
 
   deleteUser(id) {
     const userIndex = this.users.findIndex(user => user.id === id);
     if (userIndex === -1) return false;
-    
+
     this.users.splice(userIndex, 1);
     return true;
   }
@@ -63,7 +63,7 @@ class MockDatabase {
       ...profileData,
       updatedAt: new Date().toISOString()
     };
-    
+
     return this.profiles[userId];
   }
 
@@ -78,7 +78,7 @@ class MockDatabase {
 
   searchUsers(query) {
     const lowercaseQuery = query.toLowerCase();
-    return this.users.filter(user => 
+    return this.users.filter(user =>
       user.name?.toLowerCase().includes(lowercaseQuery) ||
       user.email?.toLowerCase().includes(lowercaseQuery) ||
       user.firstName?.toLowerCase().includes(lowercaseQuery) ||
