@@ -1,214 +1,69 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { BookOpen, Home as HomeIcon, Shield, Users, CheckCircle, ArrowRight } from 'lucide-react';
-import { ThemeToggle } from '@/components/theme/ThemeToggle';
-import Link from 'next/link';
+"use client";
+
+import dynamic from 'next/dynamic';
+
+// Dynamically import simplified landing page components
+const Header = dynamic(() => import('@/components/landing/Header'), {
+  loading: () => <div className="h-20 bg-white dark:bg-gray-900"></div>
+});
+
+const HeroSection = dynamic(() => import('@/components/landing/HeroSection'), {
+  loading: () => <div className="h-screen bg-gradient-to-br from-blue-600 to-purple-600"></div>
+});
+
+const ValueProposition = dynamic(() => import('@/components/landing/ValueProposition'), {
+  loading: () => <div className="h-96 bg-white dark:bg-gray-800"></div>
+});
+
+const HowItWorksSection = dynamic(() => import('@/components/landing/HowItWorksSection'), {
+  loading: () => <div className="h-96 bg-gray-50 dark:bg-gray-900"></div>
+});
+
+const PricingSectionSimple = dynamic(() => import('@/components/landing/PricingSectionSimple'), {
+  loading: () => <div className="h-96 bg-gray-50 dark:bg-gray-900"></div>
+});
+
+const EarlyAdopterSection = dynamic(() => import('@/components/landing/EarlyAdopterSection'), {
+  loading: () => <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600"></div>
+});
+
+const EssentialFAQ = dynamic(() => import('@/components/landing/EssentialFAQ'), {
+  loading: () => <div className="h-96 bg-white dark:bg-gray-800"></div>
+});
+
+const SimpleFooter = dynamic(() => import('@/components/landing/SimpleFooter'), {
+  loading: () => <div className="h-64 bg-gray-50 dark:bg-gray-900"></div>
+});
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
-      {/* Header */}
-      <header className="border-b bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center gap-2">
-              <HomeIcon className="w-8 h-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Nest</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Button variant="outline" asChild>
-                <Link href="/student/login">Student Login</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/owner/login">Owner Login</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      {/* Simplified header with minimal navigation */}
+      <Header />
 
-      {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-16">
-          <Badge variant="secondary" className="mb-4">
-            🎓 Modern Student Housing Platform
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-            Find Your Perfect
-            <span className="text-blue-600 block">Student Accommodation</span>
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            Connect with verified property owners and discover safe, affordable housing near your college.
-            Built with modern authentication and security features.
-          </p>
-        </div>
+      {/* Main landing page content - streamlined for new launch */}
+      <main className="relative">
+        {/* Hero section with clear value proposition */}
+        <HeroSection />
 
-        {/* Auth Cards */}
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
-          {/* Student Card */}
-          <Card className="relative overflow-hidden border-2 hover:border-blue-300 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5"></div>
-            <CardHeader className="relative">
-              <div className="flex items-center gap-3 mb-2">
-                <BookOpen className="w-8 h-8 text-blue-600" />
-                <CardTitle className="text-2xl">Students</CardTitle>
-              </div>
-              <CardDescription className="text-base">
-                Find your ideal accommodation near your college
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="relative space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-semibold text-green-700 dark:text-green-400">Features for Students:</h4>
-                <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Email & Phone OTP verification
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    College ID integration
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Secure password requirements
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Browse verified properties
-                  </li>
-                </ul>
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button asChild className="flex-1">
-                  <Link href="/student/signup" className="flex items-center gap-2">
-                    Sign Up <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/student/login">Login</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Core value proposition - 3 key benefits only */}
+        <ValueProposition />
 
-          {/* Owner Card */}
-          <Card className="relative overflow-hidden border-2 hover:border-green-300 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5"></div>
-            <CardHeader className="relative">
-              <div className="flex items-center gap-3 mb-2">
-                <HomeIcon className="w-8 h-8 text-green-600" />
-                <CardTitle className="text-2xl">Property Owners</CardTitle>
-              </div>
-              <CardDescription className="text-base">
-                List your properties and connect with students
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="relative space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-semibold text-green-700 dark:text-green-400">Features for Owners:</h4>
-                <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Email & Phone OTP verification
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-green-500" />
-                    Mandatory Aadhaar/DigiLocker verification
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Identity verification process
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Trusted property listing
-                  </li>
-                </ul>
-              </div>
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  <Shield className="w-4 h-4 inline mr-1" />
-                  <strong>Verification Required:</strong> Complete identity verification to list properties
-                </p>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button asChild className="flex-1" variant="default">
-                  <Link href="/owner/signup" className="flex items-center gap-2">
-                    Sign Up <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/owner/login">Login</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Simplified how it works - 3 steps */}
+        <HowItWorksSection />
 
-        {/* Features Section */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <Shield className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Secure Authentication</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Multi-factor authentication with OTP verification and identity checks
-              </p>
-            </CardContent>
-          </Card>
+        {/* Accurate pricing with ₹99/₹199 model */}
+        <PricingSectionSimple />
 
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <Users className="w-12 h-12 text-green-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Verified Community</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                All property owners undergo strict verification for student safety
-              </p>
-            </CardContent>
-          </Card>
+        {/* Early adopter section for new launch */}
+        <EarlyAdopterSection />
 
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <BookOpen className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Student-Focused</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Designed specifically for college students with integrated college verification
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Demo Info */}
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border-blue-200 dark:border-blue-800">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-4">Authentication Demo</h3>
-              <div className="grid md:grid-cols-2 gap-6 text-left">
-                <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300 mb-2">Demo Credentials:</h4>
-                  <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                    <li><strong>Student:</strong> student@test.com / password123</li>
-                    <li><strong>Owner:</strong> owner@test.com / password123</li>
-                    <li><strong>OTP Code:</strong> 123456 (for all verifications)</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-green-700 dark:text-green-300 mb-2">Features Included:</h4>
-                  <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                    <li>• React Hook Form with Zod validation</li>
-                    <li>• Email/Phone OTP verification flow</li>
-                    <li>• Aadhaar/DigiLocker integration UI</li>
-                    <li>• Responsive design with dark mode</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Essential FAQ - only 4 key questions */}
+        <EssentialFAQ />
       </main>
+
+      {/* Simplified footer with basic links only */}
+      <SimpleFooter />
     </div>
   );
 }
