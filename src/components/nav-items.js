@@ -8,16 +8,20 @@ import {
   CreditCard,
   User,
   Building,
+  BarChart3,
+  TrendingUp,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
-  { label: "Home", href: "/dashboard", icon: Home },
+  { label: "Dashboard", href: "/dashboard", icon: Home, roles: ["student"] },
+  { label: "Owner Dashboard", href: "/owner/dashboard", icon: BarChart3, roles: ["owner"] },
   { label: "Visiting Schedule", href: "/dashboard/visiting-schedule", icon: CalendarClock, roles: ["student"] },
   { label: "Visit Requests", href: "/owner/visits", icon: CalendarClock, roles: ["owner"] },
+  { label: "Analytics", href: "/owner/analytics", icon: TrendingUp, roles: ["owner"] },
   { label: "Messages", href: "/dashboard/messages", icon: MessagesSquare },
   { label: "Saved", href: "/dashboard/saved", icon: Bookmark, roles: ["student"] },
   { label: "Post Room", href: "/dashboard/post-room", icon: Plus, roles: ["owner"] },
-  { label: "Payments", href: "/dashboard/payments", icon: CreditCard, roles: ["owner"] },
+  { label: "Payments", href: "/owner/payments", icon: CreditCard, roles: ["owner"] },
   { label: "Student Profile", href: "/student/profile", icon: User, roles: ["student"] },
   { label: "Owner Profile", href: "/owner/profile", icon: Building, roles: ["owner"] },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },

@@ -30,6 +30,13 @@ export default function DashboardPage() {
   const isStudent = user?.userType === 'student';
   const isOwner = user?.userType === 'owner';
 
+  // If user is an owner, redirect to owner dashboard
+  useEffect(() => {
+    if (isOwner) {
+      window.location.href = '/owner/dashboard';
+    }
+  }, [isOwner]);
+
   // If user is a student, show the room browser
   if (isStudent) {
     return (
@@ -51,6 +58,18 @@ export default function DashboardPage() {
 
         {/* Room Browser Component */}
         <RoomBrowser />
+      </div>
+    );
+  }
+
+  // Loading state for owners while redirecting
+  if (isOwner) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Redirecting to Owner Dashboard...</p>
+        </div>
       </div>
     );
   }
