@@ -78,10 +78,10 @@ export default function ChatWindow({
 
   const getParticipantStatus = () => {
     if (conversation.participantTyping) return "typing...";
-    
+
     const isOnline = conversation.participant?.isOnline;
     const lastSeen = conversation.participant?.lastSeen;
-    
+
     if (isOnline) {
       return "Active now";
     } else if (lastSeen) {

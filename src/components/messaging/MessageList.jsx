@@ -32,7 +32,7 @@ export default function MessageList({
     const participantName = conv.participant?.name || "";
     const lastMessageContent = conv.lastMessage?.content || "";
     const propertyTitle = conv.property?.title || "";
-    
+
     const matchesSearch = participantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lastMessageContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
       propertyTitle.toLowerCase().includes(searchTerm.toLowerCase());
@@ -62,7 +62,7 @@ export default function MessageList({
 
   const formatLastMessageTime = (timestamp) => {
     if (!timestamp) return "";
-    
+
     const now = new Date();
     const messageTime = new Date(timestamp);
     const diffInMinutes = Math.floor((now - messageTime) / (1000 * 60));
