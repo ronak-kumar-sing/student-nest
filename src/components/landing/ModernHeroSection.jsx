@@ -4,6 +4,7 @@ import CardSwap, { Card } from '@/components/landing/components/CardSwap';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Star, Users, Shield } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 // MacOS Navigation Bar Component
@@ -90,19 +91,25 @@ export default function ModernHeroSection() {
             {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
+                asChild
                 size="lg"
                 className="bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] hover:from-[#6d28d9] hover:to-[#2563eb] text-white border-0 h-14 px-8 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                Find Accommodation
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <Link href="/student/signup">
+                  Find Accommodation
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Link>
               </Button>
 
               <Button
+                asChild
                 variant="outline"
                 size="lg"
                 className="border-[#2a2a2b] bg-[#1a1a1b] hover:bg-[#2a2a2b] text-white h-14 px-8 text-lg rounded-xl transition-all duration-300"
               >
-                List Your Property
+                <Link href="/pricing">
+                  View Pricing
+                </Link>
               </Button>
             </div>
 
