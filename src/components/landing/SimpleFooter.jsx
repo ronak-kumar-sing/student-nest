@@ -8,6 +8,7 @@ export default function SimpleFooter() {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = [
+    { name: "Pricing", href: "/pricing" },
     { name: "Privacy Policy", href: "/privacy" },
     { name: "Terms of Service", href: "/terms" },
     { name: "Contact", href: "/contact" },
