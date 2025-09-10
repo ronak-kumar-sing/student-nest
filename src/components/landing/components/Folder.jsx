@@ -117,7 +117,12 @@ const Folder = ({ color = '#5227FF', size = 1, items = [], className = '' }) => 
                   backgroundColor: i === 0 ? paper1 : i === 1 ? paper2 : paper3,
                   borderRadius: '10px'
                 }}>
-                {item}
+                {item && (
+                  <div className="p-2 text-xs text-black font-medium flex items-center gap-1">
+                    <span>{item.icon}</span>
+                    <span className="truncate">{item.title}</span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -144,11 +149,3 @@ const Folder = ({ color = '#5227FF', size = 1, items = [], className = '' }) => 
 };
 
 export default Folder;
-
-// Usage Example:
-
-// import Folder from './Folder'
-
-// <div style={{ height: '600px', position: 'relative' }}>
-//   <Folder size={2} color="#5227FF" className="custom-folder" />
-// </div>

@@ -1,220 +1,140 @@
 "use client";
 
-import { motion } from "framer-motion";
-import {
-  Search,
-  Shield,
-  CreditCard,
-  MessageSquare,
-  MapPin,
-  Clock,
-  Users,
-  Star,
-  CheckCircle,
-  Zap
-} from "lucide-react";
+import Folder from '@/components/landing/components/Folder';
+import { Shield, Users, Search, Star, Clock, CheckCircle } from 'lucide-react';
 
 export default function FeaturesSection() {
   const features = [
     {
-      icon: Search,
-      title: "Smart Property Search",
-      description: "Find rooms and PGs with advanced filters for location, budget, amenities, and college proximity.",
-      gradient: "from-blue-500 to-cyan-500",
-      delay: 0.1
-    },
-    {
       icon: Shield,
-      title: "Verified Listings",
-      description: "All properties are verified with owner identity confirmation and property documents for your safety.",
-      gradient: "from-green-500 to-emerald-500",
-      delay: 0.2
+      title: "Verified Security",
+      description: "Multi-factor authentication with OTP verification and mandatory Aadhaar verification for property owners.",
+      color: "#7c3aed",
+      items: [
+        { title: "Email & Phone OTP", icon: "✓" },
+        { title: "Aadhaar Verification", icon: "🔒" },
+        { title: "Identity Validation", icon: "✅" }
+      ]
     },
-    {
-      icon: CreditCard,
-      title: "Secure Payments",
-      description: "Safe and transparent payment processing with deposit protection and digital receipts.",
-      gradient: "from-purple-500 to-pink-500",
-      delay: 0.3
-    },
-    {
-      icon: MessageSquare,
-      title: "Direct Communication",
-      description: "Chat directly with property owners, schedule visits, and negotiate terms seamlessly.",
-      gradient: "from-orange-500 to-red-500",
-      delay: 0.4
-    },
-    {
-      icon: MapPin,
-      title: "Location Intelligence",
-      description: "Detailed area information including distance to colleges, transport links, and local amenities.",
-      gradient: "from-indigo-500 to-blue-500",
-      delay: 0.5
-    },
-    {
-      icon: Clock,
-      title: "24/7 Support",
-      description: "Round-the-clock customer support to help you with any queries or emergency situations.",
-      gradient: "from-teal-500 to-green-500",
-      delay: 0.6
-    }
-  ];
-
-  const benefits = [
     {
       icon: Users,
-      title: "Community Verified",
-      description: "Properties rated and reviewed by real students"
+      title: "Student Community",
+      description: "Platform designed specifically for college students with integrated college verification system.",
+      color: "#3b82f6",
+      items: [
+        { title: "College ID Integration", icon: "🎓" },
+        { title: "Student Verification", icon: "👥" },
+        { title: "Peer Reviews", icon: "⭐" }
+      ]
     },
     {
-      icon: Star,
-      title: "Quality Assured",
-      description: "Only top-rated properties make it to our platform"
-    },
-    {
-      icon: CheckCircle,
-      title: "Instant Booking",
-      description: "Book your room in just a few clicks"
-    },
-    {
-      icon: Zap,
-      title: "Lightning Fast",
-      description: "Find and secure accommodation in under 24 hours"
+      icon: Search,
+      title: "Smart Discovery",
+      description: "Advanced search filters and AI-powered recommendations to find your perfect accommodation.",
+      color: "#10b981",
+      items: [
+        { title: "Location-based Search", icon: "📍" },
+        { title: "Budget Filters", icon: "💰" },
+        { title: "Amenity Matching", icon: "🏠" }
+      ]
     }
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        delayChildren: 0.2,
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 30, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.6,
-        ease: "easeOut"
-      }
-    }
-  };
-
   return (
-    <section className="py-20 lg:py-32 bg-white dark:bg-gray-900 relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20"></div>
+    <section className="py-24 bg-[#0a0a0b] relative overflow-hidden">
+      {/* Background elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#7c3aed]/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#3b82f6]/5 rounded-full blur-3xl"></div>
+      </div>
 
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Section Header */}
-        <motion.div
-          className="text-center mb-16 lg:mb-20"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-        >
-          <div className="inline-block mb-4">
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium">
-              Why Choose StudentNest?
-            </span>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section header */}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1a1a1b] border border-[#2a2a2b] mb-6">
+            <Star className="w-4 h-4 text-[#10b981]" />
+            <span className="text-sm text-[#a1a1aa]">Why Choose StudentNest</span>
           </div>
-          <h2 className="text-4xl lg:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-              Everything You Need to
-            </span>
-            <br />
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Find Your Perfect Home
+
+          <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+            <span className="text-white">Built for </span>
+            <span className="bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] bg-clip-text text-transparent">
+              Students
             </span>
           </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            We make finding student accommodation simple, safe, and stress-free with cutting-edge technology and human touch.
-          </p>
-        </motion.div>
 
-        {/* Main Features Grid */}
-        <motion.div
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-        >
+          <p className="text-xl text-[#a1a1aa] max-w-3xl mx-auto leading-relaxed">
+            Every feature is designed with student safety, convenience, and budget in mind.
+            From verification to discovery, we've got you covered.
+          </p>
+        </div>
+
+        {/* Features grid with Folder components */}
+        <div className="grid md:grid-cols-3 gap-12 lg:gap-16">
           {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              variants={itemVariants}
-              className="group cursor-pointer"
-              whileHover={{ y: -10, transition: { duration: 0.3 } }}
-            >
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 h-full">
-                <div className={`w-16 h-16 mb-6 rounded-2xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300`}>
-                  <feature.icon className="h-8 w-8" />
+            <div key={index} className="group relative">
+              {/* Feature card */}
+              <div className="bg-gradient-to-br from-[#1a1a1b] to-[#2a2a2b] border border-[#3a3a3b] rounded-2xl p-8 h-full transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/10">
+
+                {/* Icon and title */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] flex items-center justify-center">
+                    <feature.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">{feature.title}</h3>
                 </div>
-                <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+
+                {/* Description */}
+                <p className="text-[#a1a1aa] mb-8 leading-relaxed">
                   {feature.description}
                 </p>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
 
-        {/* Additional Benefits */}
-        <motion.div
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          viewport={{ once: true }}
-        >
-          {benefits.map((benefit, index) => (
-            <div
-              key={index}
-              className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl"
-            >
-              <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white">
-                <benefit.icon className="h-6 w-6" />
+                {/* Interactive Folder component */}
+                <div className="flex justify-center mb-6">
+                  <Folder
+                    color={feature.color}
+                    size={1.2}
+                    items={feature.items}
+                    className="transition-transform duration-300 group-hover:scale-110"
+                  />
+                </div>
+
+                {/* Feature list */}
+                <div className="space-y-3">
+                  {feature.items.map((item, itemIndex) => (
+                    <div key={itemIndex} className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-[#2a2a2b] flex items-center justify-center text-sm">
+                        {item.icon}
+                      </div>
+                      <span className="text-[#a1a1aa] text-sm">{item.title}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom accent */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
-              <h4 className="font-semibold mb-2 text-gray-900 dark:text-white">
-                {benefit.title}
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                {benefit.description}
-              </p>
             </div>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Call to Action */}
-        <motion.div
-          className="text-center mt-16"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          viewport={{ once: true }}
-        >
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 lg:p-12 text-white">
-            <h3 className="text-3xl lg:text-4xl font-bold mb-4">
-              Ready to Find Your Dream Home?
-            </h3>
-            <p className="text-xl mb-6 opacity-90">
-              Join thousands of students who have found their perfect accommodation
-            </p>
-            <button className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors duration-300 transform hover:scale-105">
-              Start Your Search Now
-            </button>
-          </div>
-        </motion.div>
+        {/* Additional stats */}
+        <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {[
+            { number: "500+", label: "Students Joined", icon: Users },
+            { number: "50+", label: "Verified Properties", icon: Shield },
+            { number: "24/7", label: "Support Available", icon: Clock },
+            { number: "100%", label: "Verification Rate", icon: CheckCircle }
+          ].map((stat, index) => (
+            <div key={index} className="text-center group">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <stat.icon className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">{stat.number}</div>
+              <div className="text-[#a1a1aa] text-sm">{stat.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

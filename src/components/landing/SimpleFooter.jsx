@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, Heart } from "lucide-react";
 import Link from "next/link";
 
 export default function SimpleFooter() {
@@ -15,9 +15,9 @@ export default function SimpleFooter() {
   ];
 
   return (
-    <footer className="bg-gray-50 dark:bg-gray-900 py-12 border-t border-gray-200 dark:border-gray-700">
-      <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
+    <footer className="bg-[#0a0a0b] py-16 border-t border-[#2a2a2b]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid md:grid-cols-2 gap-12 mb-12">
           {/* Company Info */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -25,38 +25,38 @@ export default function SimpleFooter() {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">SN</span>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-xl">SN</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] bg-clip-text text-transparent">
                   StudentNest
                 </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 -mt-1">
-                  Find Your Perfect Home
+                <p className="text-sm text-[#a1a1aa] -mt-1">
+                  Find Your Perfect Student Home
                 </p>
               </div>
             </div>
 
-            <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+            <p className="text-[#a1a1aa] mb-6 leading-relaxed max-w-md">
               India's newest student housing platform, connecting students
-              with verified properties. Making student accommodation search simple and safe.
+              with verified properties. Making student accommodation search simple, safe, and affordable.
             </p>
 
             {/* Contact Info */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                <Mail className="h-4 w-4" />
-                <span className="text-sm">hello@studentnest.com</span>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 text-[#a1a1aa]">
+                <Mail className="h-5 w-5 text-[#7c3aed]" />
+                <span>hello@studentnest.in</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                <Phone className="h-4 w-4" />
-                <span className="text-sm">+91 8000-123-456</span>
+              <div className="flex items-center gap-3 text-[#a1a1aa]">
+                <Phone className="h-5 w-5 text-[#3b82f6]" />
+                <span>+91 98765 43210</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                <MapPin className="h-4 w-4" />
-                <span className="text-sm">Bangalore, Karnataka, India</span>
+              <div className="flex items-center gap-3 text-[#a1a1aa]">
+                <MapPin className="h-5 w-5 text-[#10b981]" />
+                <span>Delhi NCR, India</span>
               </div>
             </div>
           </motion.div>
@@ -65,56 +65,57 @@ export default function SimpleFooter() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
             viewport={{ once: true }}
           >
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Quick Links
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              {footerLinks.map((link, index) => (
+            <h3 className="text-lg font-semibold text-white mb-6">Quick Links</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {footerLinks.map((link) => (
                 <Link
-                  key={index}
+                  key={link.name}
                   href={link.href}
-                  className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 text-sm"
+                  className="text-[#a1a1aa] hover:text-white transition-colors duration-300 hover:translate-x-1 transform"
                 >
                   {link.name}
                 </Link>
               ))}
             </div>
 
-            {/* Newsletter Signup */}
-            <div className="mt-6">
-              <h5 className="font-semibold text-gray-900 dark:text-white mb-2">Stay Updated</h5>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <motion.button
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-300"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Subscribe
-                </motion.button>
-              </div>
+            {/* Early Access Info */}
+            <div className="mt-8 p-6 bg-gradient-to-br from-[#1a1a1b] to-[#2a2a2b] border border-[#3a3a3b] rounded-xl">
+              <h4 className="text-white font-semibold mb-2">Early Access Program</h4>
+              <p className="text-[#a1a1aa] text-sm mb-4">
+                Be among the first to experience the future of student accommodation.
+              </p>
+              <Link
+                href="/student/signup"
+                className="inline-flex px-4 py-2 bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] text-white text-sm font-semibold rounded-lg hover:from-[#6d28d9] hover:to-[#2563eb] transition-all duration-300"
+              >
+                Join Now
+              </Link>
             </div>
           </motion.div>
         </div>
 
         {/* Bottom Section */}
         <motion.div
-          className="border-t border-gray-200 dark:border-gray-700 pt-6 text-center"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
           viewport={{ once: true }}
+          className="pt-8 border-t border-[#2a2a2b]"
         >
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            © {currentYear} StudentNest. All rights reserved. | Made with ❤️ for students across India
-          </p>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-2 text-[#a1a1aa]">
+              <span>© {currentYear} StudentNest. Made with</span>
+              <Heart className="h-4 w-4 text-[#ef4444] fill-current animate-pulse" />
+              <span>for students in India</span>
+            </div>
+
+            <div className="text-[#a1a1aa] text-sm">
+              Launching Soon • Early Access Available
+            </div>
+          </div>
         </motion.div>
       </div>
     </footer>
