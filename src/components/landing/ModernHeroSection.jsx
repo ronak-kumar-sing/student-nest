@@ -140,7 +140,7 @@ export default function ModernHeroSection() {
                 cardDistance={100}
                 verticalDistance={120}
                 delay={4000}
-                pauseOnHover={true}
+                pauseOnHover={false}
                 skewAmount={7}
                 easing="elastic"
               >

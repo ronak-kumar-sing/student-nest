@@ -55,6 +55,13 @@ export default function StudentLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Test Credentials */}
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">Test Credentials:</p>
+            <p className="text-xs text-blue-600 dark:text-blue-300">Email: student@test.com</p>
+            <p className="text-xs text-blue-600 dark:text-blue-300">Password: password123</p>
+          </div>
+
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
             <InputField
               id="identifier"
