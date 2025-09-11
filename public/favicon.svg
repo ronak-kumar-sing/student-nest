@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="logoGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea" />
+      <stop offset="50%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+
+    <linearGradient id="logoGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="50%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#0891b2" />
+    </linearGradient>
+
+    <linearGradient id="logoGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="50%" stop-color="#9333ea" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(4, 4)">
+    <!-- Top Purple Band -->
+    <path
+      d="M 4 4 Q 4 2 6 2 L 18 2 Q 20 2 20 4 L 20 6 Q 20 8 18 8 L 14 8 L 14 11 Q 14 13 12 13 L 9 13 Q 7 13 7 11 L 7 8 Q 7 6 9 6 L 12 6 L 12 4 Z"
+      fill="url(#logoGradient1)"
+    />
+
+    <!-- Right Blue Band -->
+    <path
+      d="M 20 4 Q 22 4 22 6 L 22 18 Q 22 20 20 20 L 18 20 Q 15 20 15 18 L 15 14 L 13 14 Q 10 14 10 12 L 10 9 Q 10 7 13 7 L 15 7 Q 18 7 18 9 L 18 12 L 20 12 Z"
+      fill="url(#logoGradient2)"
+    />
+
+    <!-- Bottom Purple Band -->
+    <path
+      d="M 18 20 Q 18 22 15 22 L 4 22 Q 2 22 2 20 L 2 18 Q 2 15 4 15 L 7 15 L 7 13 Q 7 10 9 10 L 12 10 Q 14 10 14 13 L 14 15 Q 14 18 12 18 L 9 18 L 9 20 Z"
+      fill="url(#logoGradient3)"
+    />
+
+    <!-- Central Highlight -->
+    <circle
+      cx="12"
+      cy="12"
+      r="2"
+      fill="rgba(255, 255, 255, 0.3)"
+    />
+  </g>
+</svg>
