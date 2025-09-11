@@ -63,6 +63,13 @@ export default function OwnerLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Test Credentials */}
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-1">Test Credentials:</p>
+            <p className="text-xs text-green-600 dark:text-green-300">Email: owner@test.com</p>
+            <p className="text-xs text-green-600 dark:text-green-300">Password: password123</p>
+          </div>
+
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
             <InputField
               id="identifier"
