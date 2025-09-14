@@ -291,6 +291,252 @@ export const SAMPLE_ROOMS = [
       floor: 2,
       totalFloors: 4
     }
+  },
+  {
+    id: "room-007",
+    title: "Modern Studio Apartment in Munirka",
+    description: "A fully furnished studio apartment perfect for graduate students, equipped with modern amenities and excellent connectivity.",
+    price: 14000,
+    images: [
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
+    ],
+    roomType: "studio",
+    accommodationType: "apartment",
+    location: {
+      address: "Munirka Village, New Delhi",
+      city: "Delhi",
+      coordinates: { lat: 28.5598, lng: 77.1803 },
+      nearbyUniversities: [
+        { name: "IIT Delhi", distance: 3.0, commute: 20 },
+        { name: "JNU", distance: 2.5, commute: 15 }
+      ]
+    },
+    amenities: [
+      "wifi", "parking", "security", "kitchen", "furnished-bed", "study-table",
+      "chair", "wardrobe", "ac", "attached-bathroom", "geyser", "study-desk",
+      "cctv", "water-24x7", "power-backup", "laundry", "gym", "elevator"
+    ],
+    rating: 4.6,
+    totalReviews: 25,
+    availability: {
+      isAvailable: true,
+      availableFrom: "2025-09-15"
+    },
+    owner: {
+      id: "owner_007",
+      name: "Priya Sharma",
+      verified: true,
+      rating: 4.7,
+      email: "priya.sharma@gmail.com",
+      phone: "+91 98765 43221",
+      whatsapp: "+91 98765 43221",
+      responseRate: 95
+    },
+    features: {
+      area: 300,
+      furnished: true,
+      floor: 3,
+      totalFloors: 5
+    }
+  },
+  {
+    id: "room-008",
+    title: "Budget Shared Room in Kamla Nagar",
+    description: "Affordable shared accommodation for students attending Delhi University and nearby colleges. Safe and friendly environment.",
+    price: 6500,
+    images: [
+      "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1560448204-e1a3ecbdd543?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=800&q=80"
+    ],
+    roomType: "shared",
+    accommodationType: "room",
+    location: {
+      address: "Kamla Nagar, Delhi",
+      city: "Delhi",
+      coordinates: { lat: 28.6817, lng: 77.2067 },
+      nearbyUniversities: [
+        { name: "Delhi University", distance: 1.5, commute: 10 },
+        { name: "GTBIT", distance: 2.0, commute: 15 }
+      ]
+    },
+    amenities: [
+      "wifi", "security", "kitchen", "furnished-bed", "study-table",
+      "chair", "wardrobe", "attached-bathroom", "geyser", "study-desk",
+      "cctv", "water-24x7", "laundry"
+    ],
+    rating: 4.0,
+    totalReviews: 22,
+    availability: {
+      isAvailable: true,
+      availableFrom: "2025-08-20"
+    },
+    owner: {
+      id: "owner_008",
+      name: "Suresh Agarwal",
+      verified: true,
+      rating: 4.1,
+      email: "suresh.agarwal@gmail.com",
+      phone: "+91 98765 43222",
+      whatsapp: "+91 98765 43222",
+      responseRate: 85
+    },
+    features: {
+      area: 120,
+      furnished: true,
+      floor: 1,
+      totalFloors: 3
+    }
+  },
+  {
+    id: "room-009",
+    title: "Premium PG in Greater Kailash",
+    description: "Luxury paying guest accommodation with top-notch facilities including gym, recreation room, and 24/7 security.",
+    price: 18500,
+    images: [
+      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80"
+    ],
+    roomType: "single",
+    accommodationType: "pg",
+    location: {
+      address: "Greater Kailash I, New Delhi",
+      city: "Delhi",
+      coordinates: { lat: 28.5494, lng: 77.2389 },
+      nearbyUniversities: [
+        { name: "Jamia Millia Islamia", distance: 5.0, commute: 25 },
+        { name: "Shri Ram College", distance: 8.0, commute: 35 }
+      ]
+    },
+    amenities: [
+      "wifi", "parking", "security", "kitchen", "furnished-bed", "study-table",
+      "chair", "wardrobe", "ac", "attached-bathroom", "geyser", "study-desk",
+      "study-lighting", "cctv", "water-24x7", "power-backup", "laundry",
+      "gym", "recreation-room", "housekeeping", "meals", "elevator"
+    ],
+    rating: 4.8,
+    totalReviews: 35,
+    availability: {
+      isAvailable: true,
+      availableFrom: "2025-09-01"
+    },
+    owner: {
+      id: "owner_009",
+      name: "Kavita Malhotra",
+      verified: true,
+      rating: 4.8,
+      email: "kavita.malhotra@gmail.com",
+      phone: "+91 98765 43223",
+      whatsapp: "+91 98765 43223",
+      responseRate: 98
+    },
+    features: {
+      area: 200,
+      furnished: true,
+      floor: 4,
+      totalFloors: 6
+    }
+  },
+  {
+    id: "room-010",
+    title: "Cozy 1BHK Near AIIMS",
+    description: "Perfect for medical students and professionals. Close to AIIMS with easy access to metro and excellent medical facilities nearby.",
+    price: 16000,
+    images: [
+      "https://images.unsplash.com/photo-1560448204-e1a3ecbdd543?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
+    ],
+    roomType: "apartment",
+    accommodationType: "apartment",
+    location: {
+      address: "Ansari Nagar, New Delhi",
+      city: "Delhi",
+      coordinates: { lat: 28.5672, lng: 77.2069 },
+      nearbyUniversities: [
+        { name: "AIIMS Delhi", distance: 0.5, commute: 5 },
+        { name: "MAMC", distance: 2.0, commute: 15 }
+      ]
+    },
+    amenities: [
+      "wifi", "parking", "security", "kitchen", "furnished-bed", "study-table",
+      "chair", "wardrobe", "ac", "attached-bathroom", "geyser", "study-desk",
+      "study-lighting", "cctv", "water-24x7", "power-backup", "laundry"
+    ],
+    rating: 4.4,
+    totalReviews: 28,
+    availability: {
+      isAvailable: true,
+      availableFrom: "2025-08-25"
+    },
+    owner: {
+      id: "owner_010",
+      name: "Dr. Rajesh Gupta",
+      verified: true,
+      rating: 4.6,
+      email: "dr.rajesh.gupta@gmail.com",
+      phone: "+91 98765 43224",
+      whatsapp: "+91 98765 43224",
+      responseRate: 90
+    },
+    features: {
+      area: 450,
+      furnished: true,
+      floor: 2,
+      totalFloors: 4
+    }
+  },
+  {
+    id: "room-011",
+    title: "Student Hostel in Dwarka",
+    description: "Modern hostel facility with excellent connectivity to metro. Perfect for students attending colleges in Delhi and NCR.",
+    price: 9500,
+    images: [
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80"
+    ],
+    roomType: "shared",
+    accommodationType: "hostel",
+    location: {
+      address: "Dwarka Sector 12, New Delhi",
+      city: "Delhi",
+      coordinates: { lat: 28.5921, lng: 77.0460 },
+      nearbyUniversities: [
+        { name: "NSUT", distance: 3.5, commute: 20 },
+        { name: "IGDTUW", distance: 4.0, commute: 25 }
+      ]
+    },
+    amenities: [
+      "wifi", "parking", "security", "kitchen", "furnished-bed", "study-table",
+      "chair", "wardrobe", "attached-bathroom", "geyser", "study-desk",
+      "cctv", "water-24x7", "power-backup", "laundry", "recreation-room", "meals"
+    ],
+    rating: 4.3,
+    totalReviews: 45,
+    availability: {
+      isAvailable: true,
+      availableFrom: "2025-09-10"
+    },
+    owner: {
+      id: "owner_011",
+      name: "Hostel Management Pvt Ltd",
+      verified: true,
+      rating: 4.4,
+      email: "info@dwarkahostel.com",
+      phone: "+91 98765 43225",
+      whatsapp: "+91 98765 43225",
+      responseRate: 87
+    },
+    features: {
+      area: 100,
+      furnished: true,
+      floor: 3,
+      totalFloors: 8
+    }
   }
 ];
 

@@ -10,12 +10,14 @@ import {
   Building,
   BarChart3,
   TrendingUp,
+  Users,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: Home, roles: ["student"] },
   { label: "Owner Dashboard", href: "/owner/dashboard", icon: BarChart3, roles: ["owner"] },
   { label: "Visiting Schedule", href: "/dashboard/visiting-schedule", icon: CalendarClock, roles: ["student"] },
+  { label: "Room Sharing", href: "/shared-rooms", icon: Users, roles: ["student"] },
   { label: "Visit Requests", href: "/owner/visits", icon: CalendarClock, roles: ["owner"] },
   { label: "Analytics", href: "/owner/analytics", icon: TrendingUp, roles: ["owner"] },
   { label: "Messages", href: "/dashboard/messages", icon: MessagesSquare },

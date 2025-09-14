@@ -12,6 +12,7 @@ import SplitText from '@/components/TextAnimations/SplitText';
 import ShinyText from '@/components/TextAnimations/ShinyText';
 import ReviewsSection from '@/components/Reviews/ReviewsSection';
 import MeetingScheduler from '@/components/meetings/MeetingScheduler';
+import { ShareRoomButton } from '@/components/room-sharing/ShareRoomButton';
 import { AMENITIES_LIST } from '@/utils/constants';
 import {
   MapPin,
@@ -89,6 +90,7 @@ const roomAPI = {
       ],
       roomType: "Single",
       accommodationType: "pg",
+      maxSharingCapacity: 2, // Added for room sharing feature
       rating: 4.8,
       totalReviews: 124,
       amenities: ["wifi", "ac", "powerBackup", "security"],
@@ -361,10 +363,19 @@ export default function RoomDetailsPage() {
   const [selectedDate, setSelectedDate] = useState('');
   const [showNegotiationModal, setShowNegotiationModal] = useState(false);
   const [reviews, setReviews] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const handleReviewSubmit = (newReview) => {
     setReviews(prev => [newReview, ...prev]);
   };
+
+  useEffect(() => {
+    // Get user from localStorage (in real app, this would be from auth context)
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setCurrentUser(JSON.parse(userData));
+    }
+  }, []);
 
   useEffect(() => {
     const fetchRoom = async () => {
@@ -756,6 +767,19 @@ export default function RoomDetailsPage() {
                     {isFavorited ? <BookmarkCheck className="w-4 h-4 mr-2" /> : <Bookmark className="w-4 h-4 mr-2" />}
                     {isFavorited ? 'Saved' : 'Save for Later'}
                   </Button>
+
+                  {/* Room Sharing Button */}
+                  <div className="pt-2 border-t border-zinc-700">
+                    <ShareRoomButton
+                      roomId={room.id}
+                      currentUser={currentUser}
+                      maxSharingCapacity={room.maxSharingCapacity || 2}
+                      onSuccess={() => {
+                        // Refresh room data or show success message
+                        console.log('Room sharing action completed');
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {/* Cost Breakdown */}
