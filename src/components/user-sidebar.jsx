@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { LogOut, Home as HomeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StudentNestLogoIcon } from "@/components/ui/logo";
 
 function ActiveLink({
   href,
@@ -66,7 +67,7 @@ export function UserSidebar({ user, children }) {
         <UISidebar className="border-r bg-background">
           <SidebarHeader className="border-b">
             <div className="flex items-center gap-2 px-4 py-3">
-              <HomeIcon className="h-6 w-6 text-primary" />
+              <StudentNestLogoIcon className="h-6 w-6" />
               <span className="text-lg font-semibold text-foreground group-data-[collapsible=icon]:hidden">
                 StudentNest
               </span>

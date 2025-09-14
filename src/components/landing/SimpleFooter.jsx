@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Heart } from "lucide-react";
 import Link from "next/link";
+import { StudentNestLogoIcon } from "@/components/ui/logo";
 
 export default function SimpleFooter() {
   const currentYear = new Date().getFullYear();
@@ -27,9 +28,7 @@ export default function SimpleFooter() {
             viewport={{ once: true }}
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-xl">SN</span>
-              </div>
+              <StudentNestLogoIcon className="w-12 h-12" />
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] bg-clip-text text-transparent">
                   StudentNest
