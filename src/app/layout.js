@@ -16,6 +16,14 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Student Nest - Find Your Perfect Student Accommodation",
   description: "Discover safe, affordable, and convenient student housing near your college with Student Nest.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", sizes: "32x32" },
+      { url: "/logo.png", sizes: "192x192", type: "image/png" }
+    ],
+    apple: { url: "/logo.png", type: "image/png" },
+    shortcut: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }) {

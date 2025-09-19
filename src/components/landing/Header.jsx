@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
+import { StudentNestLogo } from "@/components/ui/logo";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -44,12 +45,7 @@ export default function Header() {
             transition={{ type: "spring", stiffness: 400 }}
           >
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] flex items-center justify-center">
-                <span className="text-white font-bold text-lg">SN</span>
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] bg-clip-text text-transparent">
-                StudentNest
-              </span>
+              <StudentNestLogo showText={true} />
             </Link>
           </motion.div>
 
