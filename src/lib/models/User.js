@@ -1,194 +1,150 @@
-// Mock User model for demo purposes
-// In a real application, this would use an ORM like Prisma, Mongoose, etc.
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
-export class User {
-  constructor(userData) {
-    this.id = userData.id;
-    this.email = userData.email;
-    this.password = userData.password; // In real app, this would be hashed
-    this.role = userData.role || 'student';
-    this.firstName = userData.firstName;
-    this.lastName = userData.lastName;
-    this.name = userData.name || `${userData.firstName} ${userData.lastName}`;
-    this.phone = userData.phone;
-    this.avatar = userData.avatar;
-    this.isActive = userData.isActive ?? true;
-    this.emailVerified = userData.emailVerified ?? false;
-    this.phoneVerified = userData.phoneVerified ?? false;
-    this.createdAt = userData.createdAt || new Date().toISOString();
-    this.updatedAt = userData.updatedAt || new Date().toISOString();
-
-    // Role-specific data
-    if (userData.profile) {
-      this.profile = userData.profile;
+// Base User Schema
+const userSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    validate: {
+      validator: function(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      },
+      message: 'Please enter a valid email address'
     }
-
-    if (userData.verification) {
-      this.verification = userData.verification;
+  },
+  phone: {
+    type: String,
+    required: true,
+    unique: true,
+    validate: {
+      validator: function(phone) {
+        return /^\+?\d{10,15}$/.test(phone);
+      },
+      message: 'Please enter a valid phone number'
     }
-
-    // Student-specific fields
-    if (this.role === 'student') {
-      this.college = userData.college;
-      this.yearOfStudy = userData.yearOfStudy;
-      this.course = userData.course;
-      this.savedProperties = userData.savedProperties || 0;
-      this.meetingRequests = userData.meetingRequests || 0;
-      this.profileCompleteness = userData.profileCompleteness || 0;
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 8,
+    validate: {
+      validator: function(password) {
+        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(password);
+      },
+      message: 'Password must contain at least 8 characters with uppercase, lowercase, number and special character'
     }
-
-    // Owner-specific fields
-    if (this.role === 'owner') {
-      this.businessName = userData.businessName;
-      this.businessType = userData.businessType;
-      this.experience = userData.experience || 0;
-      this.totalProperties = userData.totalProperties || 0;
-      this.totalBookings = userData.totalBookings || 0;
-      this.averageRating = userData.averageRating || 0;
-      this.responseTime = userData.responseTime || 0;
+  },
+  fullName: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 100
+  },
+  role: {
+    type: String,
+    enum: ['student', 'owner'],
+    required: true
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  isPhoneVerified: {
+    type: Boolean,
+    default: false
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  lastLogin: {
+    type: Date
+  },
+  refreshTokens: [{
+    token: String,
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      expires: 604800 // 7 days
     }
+  }],
+  loginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: Date
+}, {
+  timestamps: true,
+  discriminatorKey: 'role'
+});
+
+// Pre-save middleware to hash password
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
   }
+});
 
-  // Validation method
-  static validate(userData) {
-    const errors = [];
+// Method to check password
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
-    // Required fields
-    if (!userData.email) {
-      errors.push('Email is required');
-    } else if (!this.isValidEmail(userData.email)) {
-      errors.push('Invalid email format');
-    }
+// Method to check if account is locked
+userSchema.methods.isLocked = function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+};
 
-    if (!userData.password) {
-      errors.push('Password is required');
-    } else if (userData.password.length < 6) {
-      errors.push('Password must be at least 6 characters long');
-    }
-
-    if (!userData.firstName) {
-      errors.push('First name is required');
-    }
-
-    if (!userData.lastName) {
-      errors.push('Last name is required');
-    }
-
-    if (!userData.role || !['student', 'owner'].includes(userData.role)) {
-      errors.push('Valid role (student or owner) is required');
-    }
-
-    // Phone validation if provided
-    if (userData.phone && !this.isValidPhone(userData.phone)) {
-      errors.push('Invalid phone number format');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }
-
-  // Email validation
-  static isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  // Phone validation
-  static isValidPhone(phone) {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    return phoneRegex.test(phone.replace(/\s|-|\(|\)/g, ''));
-  }
-
-  // Convert to JSON (remove sensitive data)
-  toJSON() {
-    const userData = { ...this };
-    delete userData.password; // Never send password to client
-    return userData;
-  }
-
-  // Get public profile (even more limited data)
-  toPublicProfile() {
-    return {
-      id: this.id,
-      firstName: this.firstName,
-      lastName: this.lastName,
-      name: this.name,
-      avatar: this.avatar,
-      role: this.role,
-      isActive: this.isActive,
-      emailVerified: this.emailVerified,
-      phoneVerified: this.phoneVerified,
-      createdAt: this.createdAt,
-
-      // Role-specific public data
-      ...(this.role === 'student' && {
-        college: this.college,
-        yearOfStudy: this.yearOfStudy,
-        course: this.course
-      }),
-
-      ...(this.role === 'owner' && {
-        businessName: this.businessName,
-        businessType: this.businessType,
-        experience: this.experience,
-        averageRating: this.averageRating,
-        totalProperties: this.totalProperties
-      })
-    };
-  }
-
-  // Update user data
-  update(updates) {
-    // Only allow certain fields to be updated
-    const allowedUpdates = [
-      'firstName', 'lastName', 'name', 'phone', 'avatar',
-      'college', 'yearOfStudy', 'course', 'businessName',
-      'businessType', 'experience', 'profile', 'verification'
-    ];
-
-    allowedUpdates.forEach(field => {
-      if (updates[field] !== undefined) {
-        this[field] = updates[field];
-      }
+// Method to increment login attempts
+userSchema.methods.incLoginAttempts = async function() {
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    return this.updateOne({
+      $unset: { lockUntil: 1, loginAttempts: 1 }
     });
-
-    this.updatedAt = new Date().toISOString();
-    return this;
   }
 
-  // Check if user has specific verification
-  hasVerification(type) {
-    if (!this.verification) return false;
+  const updates = { $inc: { loginAttempts: 1 } };
 
-    switch (type) {
-      case 'email':
-        return this.emailVerified;
-      case 'phone':
-        return this.phoneVerified;
-      case 'college':
-        return this.verification.collegeId === 'verified';
-      case 'aadhaar':
-        return this.verification.aadhaar === 'verified';
-      case 'pan':
-        return this.verification.pan === 'verified';
-      case 'digilocker':
-        return this.verification.digilocker === true;
-      default:
-        return false;
-    }
+  if (this.loginAttempts + 1 >= 5 && !this.isLocked()) {
+    updates.$set = {
+      lockUntil: Date.now() + 2 * 60 * 60 * 1000 // Lock for 2 hours
+    };
   }
 
-  // Calculate profile completeness percentage
-  getProfileCompleteness() {
-    const requiredFields = this.role === 'student'
-      ? ['firstName', 'lastName', 'email', 'phone', 'college', 'yearOfStudy', 'course']
-      : ['firstName', 'lastName', 'email', 'phone', 'businessName', 'businessType'];
+  return this.updateOne(updates);
+};
 
-    const completedFields = requiredFields.filter(field => this[field]);
-    return Math.round((completedFields.length / requiredFields.length) * 100);
-  }
-}
+// Method to reset login attempts
+userSchema.methods.resetLoginAttempts = async function() {
+  return this.updateOne({
+    $unset: { lockUntil: 1, loginAttempts: 1 }
+  });
+};
 
-export default User;
+// Method to get public profile
+userSchema.methods.toPublicProfile = function() {
+  const userObject = this.toObject();
+  delete userObject.password;
+  delete userObject.refreshTokens;
+  delete userObject.loginAttempts;
+  delete userObject.lockUntil;
+  return userObject;
+};
+
+// Index for better performance
+userSchema.index({ email: 1 });
+userSchema.index({ phone: 1 });
+userSchema.index({ role: 1 });
+
+export default mongoose.models.User || mongoose.model('User', userSchema);

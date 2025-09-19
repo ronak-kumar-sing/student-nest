@@ -1,93 +1,46 @@
-// Mock database connection for demo purposes
-// In a real application, this would connect to MongoDB, PostgreSQL, etc.
+import mongoose from 'mongoose';
 
-import { sampleUsers } from '@/utils/sampleData';
+const MONGODB_URI = process.env.MONGODB_URI;
 
-class MockDatabase {
-  constructor() {
-    // Initialize with sample data
-    this.users = [...sampleUsers];
-    this.profiles = {};
-  }
-
-  // User operations
-  getUserByEmail(email) {
-    return this.users.find(user => user.email === email);
-  }
-
-  getUserById(id) {
-    return this.users.find(user => user.id === id);
-  }
-
-  createUser(userData) {
-    const newUser = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...userData
-    };
-
-    this.users.push(newUser);
-    return newUser;
-  }
-
-  updateUser(id, updates) {
-    const userIndex = this.users.findIndex(user => user.id === id);
-    if (userIndex === -1) return null;
-
-    this.users[userIndex] = {
-      ...this.users[userIndex],
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
-
-    return this.users[userIndex];
-  }
-
-  deleteUser(id) {
-    const userIndex = this.users.findIndex(user => user.id === id);
-    if (userIndex === -1) return false;
-
-    this.users.splice(userIndex, 1);
-    return true;
-  }
-
-  // Profile operations
-  getUserProfile(userId) {
-    return this.profiles[userId];
-  }
-
-  updateUserProfile(userId, profileData) {
-    this.profiles[userId] = {
-      ...this.profiles[userId],
-      ...profileData,
-      updatedAt: new Date().toISOString()
-    };
-
-    return this.profiles[userId];
-  }
-
-  // Utility methods
-  getAllUsers() {
-    return this.users;
-  }
-
-  getUsersByRole(role) {
-    return this.users.filter(user => user.role === role);
-  }
-
-  searchUsers(query) {
-    const lowercaseQuery = query.toLowerCase();
-    return this.users.filter(user =>
-      user.name?.toLowerCase().includes(lowercaseQuery) ||
-      user.email?.toLowerCase().includes(lowercaseQuery) ||
-      user.firstName?.toLowerCase().includes(lowercaseQuery) ||
-      user.lastName?.toLowerCase().includes(lowercaseQuery)
-    );
-  }
+if (!MONGODB_URI) {
+  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
-// Create a singleton instance
-const db = new MockDatabase();
+let cached = global.mongoose;
 
-export default db;
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function connectDB() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      family: 4
+    };
+
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('✅ MongoDB connected successfully');
+      return mongoose;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    console.error('❌ MongoDB connection error:', e);
+    throw e;
+  }
+
+  return cached.conn;
+}
+
+export default connectDB;

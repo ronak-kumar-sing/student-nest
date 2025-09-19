@@ -1,229 +1,165 @@
 import { NextResponse } from 'next/server';
+import connectDB from '@/lib/db/connection';
+import User from '@/lib/models/User';
+import { loginSchema, normalizeEmail, sanitizePhone } from '@/lib/validation/authSchemas';
+import { generateTokens } from '@/lib/utils/jwt';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
 
-// In-memory user storage (replace with real database)
-const users = [
-  {
-    id: 1,
-    email: "admin@studentnest.com",
-    username: "admin",
-    password: "admin123", // In production, use bcrypt hash
-    role: "admin",
-    userType: "admin",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 2,
-    email: "student@test.com",
-    username: "student",
-    password: "password123",
-    role: "user",
-    userType: "student",
-    fullName: "Priya Sharma",
-    collegeId: "CS2024001",
-    collegeName: "Indian Institute of Technology, Delhi",
-    phone: "+91 9876543210",
-    dateOfBirth: "2002-06-15",
-    gender: "female",
-    city: "New Delhi",
-    state: "Delhi",
-    emergencyContact: {
-      name: "Rajesh Sharma",
-      relationship: "Father",
-      phone: "+91 9876543211"
-    },
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b000?w=150&h=150&fit=crop&crop=face",
-    bio: "Computer Science student passionate about technology and innovation. Looking for comfortable accommodation near campus.",
-    emailVerified: true,
-    phoneVerified: true,
-    aadhaarVerified: false,
-    studentIdVerified: true,
-    collegeVerified: true,
-    profileCompletion: 85,
-    roomTypePreference: ["single", "studio"],
-    budgetMin: 8000,
-    budgetMax: 15000,
-    locationPreferences: ["Near Metro Station", "Close to College", "Market Area"],
-    amenityPreferences: ["wifi", "ac", "laundry", "kitchen", "security"],
-    savedProperties: 5,
-    totalViews: 23,
-    responseRate: 95,
-    createdAt: "2024-01-15T08:30:00.000Z"
-  },
-  {
-    id: 3,
-    email: "owner@test.com",
-    username: "owner",
-    password: "password123",
-    role: "owner",
-    userType: "owner",
-    fullName: "Vikram Patel",
-    phone: "+91 8765432109",
-    businessName: "Patel Properties & Accommodations",
-    businessType: "Property Management Company",
-    gstNumber: "29ABCDE1234F1Z5",
-    panNumber: "ABCDE1234F",
-    experience: 8,
-    businessDescription: "Leading property management company specializing in student accommodations across Delhi NCR. We provide safe, comfortable, and affordable housing solutions with modern amenities.",
-    businessAddress: "Shop No. 15, Sector 18, Noida, Uttar Pradesh 201301",
-    businessPhone: "+91 8765432108",
-    businessEmail: "business@patelproperties.com",
-    websiteUrl: "https://patelproperties.com",
-    city: "Noida",
-    state: "Uttar Pradesh",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-    emailVerified: true,
-    phoneVerified: true,
-    aadhaarVerified: true,
-    panVerified: true,
-    businessVerified: true,
-    gstVerified: true,
-    propertyVerified: false,
-    verificationStatus: "verified",
-    profileCompletion: 92,
-    totalProperties: 15,
-    activeListings: 12,
-    totalTenants: 45,
-    averageRating: 4.3,
-    totalBookings: 78,
-    responseTime: "2 hours",
-    socialMedia: {
-      facebook: "https://facebook.com/patelproperties",
-      instagram: "https://instagram.com/patelproperties",
-      linkedin: "https://linkedin.com/company/patel-properties"
-    },
-    createdAt: "2023-08-10T10:15:00.000Z"
-  },
-  {
-    id: 4,
-    email: "student2@test.com",
-    username: "student2",
-    password: "password123",
-    role: "user",
-    userType: "student",
-    fullName: "Arjun Kumar",
-    collegeId: "ME2023015",
-    collegeName: "Delhi Technological University",
-    phone: "+91 9123456789",
-    dateOfBirth: "2001-11-22",
-    gender: "male",
-    city: "Delhi",
-    state: "Delhi",
-    emergencyContact: {
-      name: "Sunita Kumar",
-      relationship: "Mother",
-      phone: "+91 9123456788"
-    },
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-    bio: "Mechanical Engineering student interested in robotics. Need shared accommodation with study-friendly environment.",
-    emailVerified: true,
-    phoneVerified: false,
-    aadhaarVerified: false,
-    studentIdVerified: false,
-    collegeVerified: false,
-    profileCompletion: 60,
-    roomTypePreference: ["shared", "pg"],
-    budgetMin: 5000,
-    budgetMax: 10000,
-    locationPreferences: ["Close to College", "Bus Stand Nearby", "Quiet Neighborhood"],
-    amenityPreferences: ["wifi", "food", "laundry", "study_room"],
-    savedProperties: 8,
-    totalViews: 15,
-    responseRate: 88,
-    createdAt: "2024-02-20T14:45:00.000Z"
-  },
-  {
-    id: 5,
-    email: "owner2@test.com",
-    username: "owner2",
-    password: "password123",
-    role: "owner",
-    userType: "owner",
-    fullName: "Meera Singh",
-    phone: "+91 7654321098",
-    businessName: "Singh Student Homes",
-    businessType: "Individual Property Owner",
-    experience: 5,
-    businessDescription: "Family-owned business providing homely accommodation for students. We focus on creating a safe and comfortable environment for students away from home.",
-    businessAddress: "H-45, Lajpat Nagar, New Delhi 110024",
-    businessPhone: "+91 7654321097",
-    businessEmail: "contact@singhstudenthouses.com",
-    city: "New Delhi",
-    state: "Delhi",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-    emailVerified: true,
-    phoneVerified: true,
-    aadhaarVerified: false,
-    panVerified: false,
-    businessVerified: false,
-    gstVerified: false,
-    propertyVerified: true,
-    verificationStatus: "pending",
-    profileCompletion: 70,
-    totalProperties: 3,
-    activeListings: 3,
-    totalTenants: 12,
-    averageRating: 4.7,
-    totalBookings: 18,
-    responseTime: "1 hour",
-    socialMedia: {
-      facebook: "",
-      instagram: "",
-      linkedin: ""
-    },
-    createdAt: "2023-12-05T16:20:00.000Z"
-  }
-];
+// Rate limiter: 5 attempts per 15 minutes
+const rateLimiter = new RateLimiterMemory({
+  keyGenerator: (req) => req.ip || 'unknown',
+  points: 5,
+  duration: 15 * 60, // 15 minutes
+});
 
-// POST /api/auth/login - User login
 export async function POST(request) {
   try {
-    const { identifier, password, userType } = await request.json();
+    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
-    if (!identifier || !password) {
+    // Check rate limit
+    try {
+      await rateLimiter.consume(clientIP);
+    } catch (rateLimiterRes) {
       return NextResponse.json(
-        { success: false, error: 'Email/username and password are required' },
+        {
+          error: 'Too many login attempts',
+          message: `Try again in ${Math.round(rateLimiterRes.msBeforeNext / 1000)} seconds`,
+          retryAfter: Math.round(rateLimiterRes.msBeforeNext / 1000)
+        },
+        { status: 429 }
+      );
+    }
+
+    const body = await request.json();
+
+    // Validate input
+    const validationResult = loginSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        },
         { status: 400 }
       );
     }
 
-    // Find user by email or username
-    const user = users.find(u =>
-      (u.email === identifier || u.username === identifier) &&
-      (userType ? u.userType === userType : true)
-    );
+    const { identifier, password } = validationResult.data;
+
+    // Connect to database
+    await connectDB();
+
+    // Determine if identifier is email or phone
+    let query = {};
+    if (identifier.includes('@')) {
+      query.email = normalizeEmail(identifier);
+    } else {
+      query.phone = sanitizePhone(identifier);
+    }
+
+    // Find user
+    const user = await User.findOne(query);
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
+        {
+          error: 'Invalid credentials',
+          message: 'Email/phone or password is incorrect'
+        },
         { status: 401 }
       );
     }
 
-    // In production, use bcrypt to compare passwords
-    if (user.password !== password) {
+    // Check if account is locked
+    if (user.isLocked()) {
+      const lockTime = Math.round((user.lockUntil - Date.now()) / 1000 / 60);
       return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
+        {
+          error: 'Account locked',
+          message: `Account is locked due to too many failed login attempts. Try again in ${lockTime} minutes.`
+        },
+        { status: 423 }
+      );
+    }
+
+    // Check if account is active
+    if (!user.isActive) {
+      return NextResponse.json(
+        {
+          error: 'Account inactive',
+          message: 'Your account has been deactivated. Please contact support.'
+        },
+        { status: 403 }
+      );
+    }
+
+    // Verify password
+    const isPasswordValid = await user.comparePassword(password);
+
+    if (!isPasswordValid) {
+      // Increment login attempts
+      await user.incLoginAttempts();
+
+      return NextResponse.json(
+        {
+          error: 'Invalid credentials',
+          message: 'Email/phone or password is incorrect'
+        },
         { status: 401 }
       );
     }
 
-    // In production, generate and return JWT token
-    const token = `fake-jwt-token-${user.id}`;
+    // Reset login attempts on successful login
+    if (user.loginAttempts > 0) {
+      await user.resetLoginAttempts();
+    }
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    // Update last login
+    user.lastLogin = new Date();
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        user: userWithoutPassword,
-        token: token
-      },
-      message: 'Login successful'
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user);
+
+    // Store refresh token in user document
+    user.refreshTokens.push({
+      token: refreshToken,
+      createdAt: new Date()
     });
+
+    // Keep only last 5 refresh tokens
+    if (user.refreshTokens.length > 5) {
+      user.refreshTokens = user.refreshTokens.slice(-5);
+    }
+
+    await user.save();
+
+    // Prepare user data for response
+    const userData = user.toPublicProfile();
+
+    // Set refresh token as httpOnly cookie
+    const response = NextResponse.json({
+      success: true,
+      message: 'Login successful',
+      user: userData,
+      accessToken
+    });
+
+    response.cookies.set('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 // 7 days
+    });
+
+    return response;
+
   } catch (error) {
+    console.error('Login error:', error);
     return NextResponse.json(
-      { success: false, error: 'Login failed' },
+      {
+        error: 'Internal server error',
+        message: 'Something went wrong. Please try again later.'
+      },
       { status: 500 }
     );
   }
