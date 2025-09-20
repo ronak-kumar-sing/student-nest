@@ -22,17 +22,71 @@ const studentSchema = new mongoose.Schema({
     min: 1,
     max: 6
   },
+  // Profile fields
+  avatar: {
+    type: String, // URL to avatar image
+    default: null
+  },
+  city: {
+    type: String,
+    trim: true
+  },
+  state: {
+    type: String,
+    trim: true
+  },
+  bio: {
+    type: String,
+    maxlength: 500,
+    trim: true
+  },
+  // Enhanced preferences
   preferences: {
-    budgetRange: {
-      min: Number,
-      max: Number
-    },
-    location: String,
-    roomType: {
+    roomTypePreference: [{
       type: String,
-      enum: ['single', 'shared', 'any']
+      enum: ['single', 'shared', 'studio', 'pg']
+    }],
+    budgetMin: {
+      type: Number,
+      min: 2000,
+      max: 50000
     },
-    amenities: [String]
+    budgetMax: {
+      type: Number,
+      min: 2000,
+      max: 50000
+    },
+    locationPreferences: [{
+      type: String
+    }],
+    amenityPreferences: [{
+      type: String
+    }]
+  },
+  // Verification fields
+  verification: {
+    status: {
+      type: String,
+      enum: ['pending', 'in-review', 'verified', 'rejected'],
+      default: 'pending'
+    },
+    collegeIdCard: {
+      type: String // URL to uploaded document
+    },
+    aadhaarCard: {
+      type: String // URL to uploaded document
+    },
+    verifiedAt: Date,
+    rejectionReason: String
+  },
+  // Activity tracking
+  lastActive: {
+    type: Date,
+    default: Date.now
+  },
+  viewCount: {
+    type: Number,
+    default: 0
   },
   savedProperties: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -49,21 +103,33 @@ const studentSchema = new mongoose.Schema({
 // Calculate profile completeness on save
 studentSchema.pre('save', function(next) {
   let completeness = 0;
-  const totalFields = 10;
+  const totalFields = 12;
 
+  // Basic fields
   if (this.fullName) completeness++;
   if (this.email) completeness++;
   if (this.phone) completeness++;
+  if (this.avatar) completeness++;
+
+  // Academic fields
   if (this.collegeId) completeness++;
   if (this.collegeName) completeness++;
   if (this.course) completeness++;
   if (this.yearOfStudy) completeness++;
-  if (this.preferences?.budgetRange) completeness++;
-  if (this.preferences?.location) completeness++;
-  if (this.preferences?.roomType) completeness++;
+
+  // Location fields
+  if (this.city) completeness++;
+  if (this.state) completeness++;
+
+  // Preferences
+  if (this.preferences?.roomTypePreference?.length > 0) completeness++;
+  if (this.preferences?.budgetMin && this.preferences?.budgetMax) completeness++;
 
   this.profileCompleteness = Math.round((completeness / totalFields) * 100);
   next();
 });
 
-export default User.discriminator('Student', studentSchema);
+// Use existing model if it exists, otherwise create new discriminator
+const Student = mongoose.models.Student || User.discriminator('Student', studentSchema);
+
+export default Student;

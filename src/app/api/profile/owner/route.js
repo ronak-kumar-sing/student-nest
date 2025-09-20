@@ -1,147 +1,168 @@
 import { NextResponse } from 'next/server';
-import { ownerProfileSchema } from '@/lib/validation/profileSchemas';
+import jwt from 'jsonwebtoken';
+import connectDB from '@/lib/db/connect';
+import Owner from '@/lib/models/Owner';
+import { z } from 'zod';
 
-// Mock database - in production, replace with actual database calls
-let ownerProfiles = [
-  {
-    id: 1,
-    userId: 2,
-    firstName: "Rajesh",
-    lastName: "Kumar",
-    bio: "Experienced property owner with 8+ years in student accommodation. Committed to providing safe and comfortable living spaces.",
-    avatar: "/api/placeholder/150/150",
-    dateOfBirth: "1980-06-20",
-    businessName: "Kumar Properties",
-    businessType: "individual",
-    experience: 8,
-    totalProperties: 15,
-    businessAddress: "123 Main Street, Sector 18, Noida, UP 201301",
-    businessPhone: "+91-9876543210",
-    businessEmail: "rajesh@kumarproperties.com",
-    gstNumber: "07AABCU9603R1ZV",
-    aadhaarNumber: "123456789012", // encrypted in production
-    aadhaarVerified: "verified",
-    aadhaarDocument: "/uploads/documents/aadhaar-1.pdf",
-    digilockerVerified: true,
-    panNumber: "ABCDE1234F", // encrypted in production
-    panDocument: "/uploads/documents/pan-1.pdf",
-    averageRating: 4.7,
-    totalReviews: 127,
-    responseTime: 2, // hours
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-];
+// Validation schema for owner profile updates
+const ownerProfileSchema = z.object({
+  fullName: z.string().min(2).max(100).optional(),
+  phone: z.string().regex(/^\+?\d{10,15}$/).optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  bio: z.string().max(500).optional(),
+  avatar: z.string().url().optional(),
+  businessName: z.string().optional(),
+  businessType: z.enum(['individual', 'company', 'partnership']).optional(),
+  businessDescription: z.string().max(1000).optional(),
+  gstNumber: z.string().regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/).optional(),
+  experience: z.number().min(0).optional(),
+  licenseNumber: z.string().optional()
+});
 
-export async function GET(request) {
+// Helper function to verify JWT token and get user
+async function getAuthenticatedUser(request) {
   try {
-    // Get user ID from auth token (simplified for demo)
-    const userId = 2; // Mock user ID
-
-    const profile = ownerProfiles.find(p => p.userId === userId);
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      );
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { error: 'No valid authorization header found' };
     }
 
-    // Calculate verification status
-    const verificationStatus = {
-      aadhaar: profile.aadhaarVerified,
-      digilocker: profile.digilockerVerified,
-      pan: profile.panDocument ? "verified" : "pending"
-    };
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Calculate business stats (mock data)
-    const businessStats = {
-      totalProperties: profile.totalProperties,
-      activeListings: 12,
-      totalBookings: 89,
-      averageRating: profile.averageRating,
-      totalReviews: profile.totalReviews,
-      responseTime: profile.responseTime,
-      profileCompleteness: calculateProfileCompleteness(profile)
+    if (!decoded.userId || decoded.role?.toLowerCase() !== 'owner') {
+      return { error: 'Invalid token or unauthorized access' };
+    }
+
+    await connectDB();
+    const user = await Owner.findById(decoded.userId);
+
+    if (!user) {
+      return { error: 'User not found' };
+    }
+
+    return { user };
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return { error: 'Invalid or expired token' };
+  }
+}
+
+// GET /api/profile/owner - Get owner profile
+export async function GET(request) {
+  try {
+    const { user, error } = await getAuthenticatedUser(request);
+
+    if (error) {
+      return NextResponse.json({
+        success: false,
+        error
+      }, { status: 401 });
+    }
+
+    // Calculate business statistics
+    const profileData = {
+      ...user.toPublicProfile(),
+      profileCompletion: user.profileCompletion,
+      // Business statistics that the frontend expects
+      totalProperties: user.totalProperties,
+      activeListings: user.activeListings,
+      totalTenants: user.totalTenants,
+      totalBookings: user.totalBookings,
+      averageRating: user.averageRating,
+      // Verification status
+      isVerified: user.verification?.status === 'verified',
+      verificationStatus: user.verification?.status,
+      // Member info
+      memberSince: user.createdAt
     };
 
     return NextResponse.json({
       success: true,
-      data: {
-        profile,
-        verificationStatus,
-        businessStats
-      }
+      data: profileData
     });
 
   } catch (error) {
     console.error('Error fetching owner profile:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to fetch profile'
+    }, { status: 500 });
   }
 }
 
+// PUT /api/profile/owner - Update owner profile
 export async function PUT(request) {
   try {
-    const body = await request.json();
-    const userId = 2; // Mock user ID
+    const { user, error } = await getAuthenticatedUser(request);
 
-    // Validate input
-    const validatedData = ownerProfileSchema.parse(body);
-
-    // Find and update profile
-    const profileIndex = ownerProfiles.findIndex(p => p.userId === userId);
-
-    if (profileIndex === -1) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      );
+    if (error) {
+      return NextResponse.json({
+        success: false,
+        error
+      }, { status: 401 });
     }
 
-    // Update profile
-    ownerProfiles[profileIndex] = {
-      ...ownerProfiles[profileIndex],
-      ...validatedData,
-      updatedAt: new Date().toISOString()
-    };
+    const body = await request.json();
+
+    // Validate the request body
+    const validationResult = ownerProfileSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid data',
+        details: validationResult.error.issues
+      }, { status: 400 });
+    }
+
+    const updateData = validationResult.data;
+
+    // Check if email is being updated and if it's unique
+    if (updateData.email && updateData.email !== user.email) {
+      const existingUser = await Owner.findOne({
+        email: updateData.email,
+        _id: { $ne: user._id }
+      });
+
+      if (existingUser) {
+        return NextResponse.json({
+          success: false,
+          error: 'Email already exists'
+        }, { status: 400 });
+      }
+    }
+
+    // Check if phone is being updated and if it's unique
+    if (updateData.phone && updateData.phone !== user.phone) {
+      const existingUser = await Owner.findOne({
+        phone: updateData.phone,
+        _id: { $ne: user._id }
+      });
+
+      if (existingUser) {
+        return NextResponse.json({
+          success: false,
+          error: 'Phone number already exists'
+        }, { status: 400 });
+      }
+    }
+
+    // Update the user
+    Object.assign(user, updateData);
+    await user.save();
 
     return NextResponse.json({
       success: true,
-      data: ownerProfiles[profileIndex],
-      message: 'Profile updated successfully'
+      message: 'Profile updated successfully',
+      data: user.toPublicProfile()
     });
 
   } catch (error) {
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      );
-    }
-
     console.error('Error updating owner profile:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to update profile'
+    }, { status: 500 });
   }
-}
-
-function calculateProfileCompleteness(profile) {
-  const requiredFields = [
-    'firstName', 'lastName', 'bio', 'avatar', 'businessName',
-    'businessType', 'experience', 'businessAddress', 'businessPhone',
-    'businessEmail', 'aadhaarVerified', 'panDocument'
-  ];
-
-  const completedFields = requiredFields.filter(field => {
-    const value = profile[field];
-    if (field === 'aadhaarVerified') return value === 'verified';
-    return value && value !== '';
-  }).length;
-
-  return Math.round((completedFields / requiredFields.length) * 100);
 }

@@ -3,6 +3,25 @@ import User from './User.js';
 
 // Owner-specific schema extending User
 const ownerSchema = new mongoose.Schema({
+  // Profile fields
+  avatar: {
+    type: String, // URL to avatar image
+    default: null
+  },
+  city: {
+    type: String,
+    trim: true
+  },
+  state: {
+    type: String,
+    trim: true
+  },
+  bio: {
+    type: String,
+    maxlength: 500,
+    trim: true
+  },
+  // Business information
   businessName: {
     type: String,
     trim: true
@@ -11,6 +30,25 @@ const ownerSchema = new mongoose.Schema({
     type: String,
     enum: ['individual', 'company', 'partnership'],
     default: 'individual'
+  },
+  businessDescription: {
+    type: String,
+    maxlength: 1000,
+    trim: true
+  },
+  gstNumber: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(gst) {
+        return !gst || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gst);
+      },
+      message: 'Please enter a valid GST number'
+    }
+  },
+  experience: {
+    type: Number, // years of experience
+    min: 0
   },
   licenseNumber: {
     type: String,
@@ -67,7 +105,16 @@ const ownerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Property'
   }],
+  // Business statistics
   totalProperties: {
+    type: Number,
+    default: 0
+  },
+  activeListings: {
+    type: Number,
+    default: 0
+  },
+  totalTenants: {
     type: Number,
     default: 0
   },
@@ -81,6 +128,12 @@ const ownerSchema = new mongoose.Schema({
     min: 0,
     max: 5
   },
+  profileCompletion: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
   responseTime: {
     type: Number, // in hours
     default: 24
@@ -91,6 +144,35 @@ const ownerSchema = new mongoose.Schema({
     default: 'free'
   },
   subscriptionExpiry: Date
+});
+
+// Calculate profile completion before save
+ownerSchema.pre('save', function(next) {
+  let completeness = 0;
+  const totalFields = 14;
+
+  // Basic fields
+  if (this.fullName) completeness++;
+  if (this.email) completeness++;
+  if (this.phone) completeness++;
+  if (this.avatar) completeness++;
+  if (this.city) completeness++;
+  if (this.state) completeness++;
+
+  // Business fields
+  if (this.businessName) completeness++;
+  if (this.businessType) completeness++;
+  if (this.businessDescription) completeness++;
+  if (this.experience !== undefined) completeness++;
+
+  // Address
+  if (this.address?.street) completeness++;
+  if (this.address?.city) completeness++;
+  if (this.address?.state) completeness++;
+  if (this.address?.pincode) completeness++;
+
+  this.profileCompletion = Math.round((completeness / totalFields) * 100);
+  next();
 });
 
 // Override isActive for owners - they must be verified to be active
@@ -122,4 +204,7 @@ ownerSchema.methods.rejectVerification = async function(reason) {
   return this.save();
 };
 
-export default User.discriminator('Owner', ownerSchema);
+// Use existing model if it exists, otherwise create new discriminator
+const Owner = mongoose.models.Owner || User.discriminator('Owner', ownerSchema);
+
+export default Owner;
