@@ -38,6 +38,7 @@ export const ownerSignupSchema = z.object({
 export const loginSchema = z.object({
   identifier: z.string().min(2, "Email or phone is required"), // username or email or phone
   password: z.string().min(1, "Password is required"),
+  role: z.enum(['student', 'owner', 'Student', 'Owner']).optional().transform(val => val?.toLowerCase())
 });
 
 export const forgotPasswordSchema = z.object({

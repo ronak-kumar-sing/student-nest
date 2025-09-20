@@ -107,10 +107,11 @@ export const sendWelcomeEmail = async (email, fullName, role) => {
 const getOTPEmailSubject = (purpose) => {
   switch (purpose) {
     case 'signup':
+    case 'verification':
       return 'Verify Your Email - Student Nest';
     case 'login':
       return 'Login Verification - Student Nest';
-    case 'password-reset':
+    case 'password_reset':
       return 'Password Reset Verification - Student Nest';
     default:
       return 'Email Verification - Student Nest';

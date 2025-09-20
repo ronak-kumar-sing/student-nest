@@ -24,21 +24,25 @@ export default function StudentLoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, userType: "student" }),
+        body: JSON.stringify({ ...values, role: "student" }),
       })
 
       const data = await res.json()
 
-      if (res.ok) {
+      if (res.ok && data.success) {
         toast.success("Welcome back!")
         // Store token and user data, then redirect to dashboard
-        localStorage.setItem("token", data.data.token)
-        localStorage.setItem("user", JSON.stringify(data.data.user))
+        localStorage.setItem("token", data.accessToken)
+        localStorage.setItem("user", JSON.stringify({
+          ...data.user,
+          userType: data.user.role.toLowerCase()
+        }))
         window.location.href = "/dashboard"
       } else {
-        toast.error(data.error || "Login failed. Please check your credentials.")
+        toast.error(data.message || data.error || "Login failed. Please check your credentials.")
       }
     } catch (error) {
+      console.error("Login error:", error)
       toast.error("Network error. Please try again.")
     } finally {
       setLoading(false)
@@ -58,8 +62,8 @@ export default function StudentLoginPage() {
           {/* Test Credentials */}
           <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
             <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">Test Credentials:</p>
-            <p className="text-xs text-blue-600 dark:text-blue-300">Email: student@test.com</p>
-            <p className="text-xs text-blue-600 dark:text-blue-300">Password: password123</p>
+            <p className="text-xs text-blue-600 dark:text-blue-300">Email: priya.sharma@gmail.com</p>
+            <p className="text-xs text-blue-600 dark:text-blue-300">Password: NewPassword123!</p>
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>

@@ -44,7 +44,7 @@ export async function POST(request) {
       );
     }
 
-    const { identifier, password } = validationResult.data;
+    const { identifier, password, role } = validationResult.data;
 
     // Connect to database
     await connectDB();
@@ -57,8 +57,27 @@ export async function POST(request) {
       query.phone = sanitizePhone(identifier);
     }
 
+    // Add role filter if provided
+    if (role) {
+      // Search for both lowercase and capitalized versions
+      const roleVariants = [role, role.charAt(0).toUpperCase() + role.slice(1)];
+      query.role = { $in: roleVariants };
+    }
+
+    console.log('Login query:', JSON.stringify(query));
+    console.log('Looking for user with role:', role);
+
     // Find user
     const user = await User.findOne(query);
+
+    console.log('Found user:', user ? {
+      id: user._id,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+      hasPassword: !!user.password
+    } : 'null');
 
     if (!user) {
       return NextResponse.json(
@@ -94,7 +113,9 @@ export async function POST(request) {
     }
 
     // Verify password
+    console.log('Comparing password...');
     const isPasswordValid = await user.comparePassword(password);
+    console.log('Password valid:', isPasswordValid);
 
     if (!isPasswordValid) {
       // Increment login attempts

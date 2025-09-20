@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .success {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+
+    .error {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 3px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Student Nest Authentication Test</h1>
+
+  <div class="test-section">
+    <h3>1. Test Student Login</h3>
+    <button onclick="testStudentLogin()">Login as Student</button>
+    <div id="studentLoginResult"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>2. Test Owner Login</h3>
+    <button onclick="testOwnerLogin()">Login as Owner</button>
+    <div id="ownerLoginResult"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>3. Check Authentication Status</h3>
+    <button onclick="checkAuthStatus()">Check LocalStorage</button>
+    <div id="authStatusResult"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>4. Test Dashboard Access</h3>
+    <button onclick="testDashboardAccess()">Access Dashboard</button>
+    <div id="dashboardResult"></div>
+  </div>
+
+  <script>
+    async function testStudentLogin() {
+      const resultDiv = document.getElementById('studentLoginResult');
+      resultDiv.innerHTML = '<p>Testing student login...</p>';
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identifier: 'priya.sharma@gmail.com',
+            password: 'NewPassword123!',
+            role: 'student'
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Store authentication data like the frontend does
+          localStorage.setItem('token', data.accessToken);
+          localStorage.setItem('user', JSON.stringify({
+            ...data.user,
+            userType: data.user.role.toLowerCase()
+          }));
+
+          resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Student Login Successful!</h4>
+                            <p><strong>User:</strong> ${data.user.fullName}</p>
+                            <p><strong>Role:</strong> ${data.user.role}</p>
+                            <p><strong>Email:</strong> ${data.user.email}</p>
+                            <p><strong>Token stored:</strong> ${data.accessToken.substring(0, 20)}...</p>
+                        </div>
+                    `;
+        } else {
+          resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Student Login Failed</h4>
+                            <p>${data.message || data.error}</p>
+                        </div>
+                    `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+      }
+    }
+
+    async function testOwnerLogin() {
+      const resultDiv = document.getElementById('ownerLoginResult');
+      resultDiv.innerHTML = '<p>Testing owner login...</p>';
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identifier: 'vikram.patel@gmail.com',
+            password: 'Owner123!',
+            role: 'owner'
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Store authentication data like the frontend does
+          localStorage.setItem('token', data.accessToken);
+          localStorage.setItem('user', JSON.stringify({
+            ...data.user,
+            userType: data.user.role.toLowerCase()
+          }));
+
+          resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Owner Login Successful!</h4>
+                            <p><strong>User:</strong> ${data.user.fullName}</p>
+                            <p><strong>Role:</strong> ${data.user.role}</p>
+                            <p><strong>Email:</strong> ${data.user.email}</p>
+                            <p><strong>Business:</strong> ${data.user.businessName || 'N/A'}</p>
+                            <p><strong>Token stored:</strong> ${data.accessToken.substring(0, 20)}...</p>
+                        </div>
+                    `;
+        } else {
+          resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Owner Login Failed</h4>
+                            <p>${data.message || data.error}</p>
+                        </div>
+                    `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+      }
+    }
+
+    function checkAuthStatus() {
+      const resultDiv = document.getElementById('authStatusResult');
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+
+      if (token && user) {
+        try {
+          const userData = JSON.parse(user);
+          resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Authentication Data Found</h4>
+                            <p><strong>Token:</strong> ${token.substring(0, 30)}...</p>
+                            <p><strong>User Data:</strong></p>
+                            <pre>${JSON.stringify(userData, null, 2)}</pre>
+                        </div>
+                    `;
+        } catch (error) {
+          resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Invalid User Data</h4>
+                            <p>Token exists but user data is corrupted</p>
+                        </div>
+                    `;
+        }
+      } else {
+        resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ No Authentication Data</h4>
+                        <p>Please login first</p>
+                    </div>
+                `;
+      }
+    }
+
+    function testDashboardAccess() {
+      const resultDiv = document.getElementById('dashboardResult');
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+
+      if (token && user) {
+        resultDiv.innerHTML = `
+                    <div class="success">
+                        <h4>✅ Ready for Dashboard</h4>
+                        <p>Authentication data is properly stored.</p>
+                        <p><a href="/dashboard" target="_blank">🔗 Open Dashboard</a></p>
+                    </div>
+                `;
+      } else {
+        resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Cannot Access Dashboard</h4>
+                        <p>Please login first to access the dashboard</p>
+                    </div>
+                `;
+      }
+    }
+
+    // Check auth status on page load
+    window.onload = function () {
+      checkAuthStatus();
+    }
+  </script>
+</body>
+
+</html>

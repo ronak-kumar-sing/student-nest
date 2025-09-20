@@ -103,4 +103,39 @@ otpSchema.statics.createOTP = async function(identifier, type, purpose = 'verifi
   return otp;
 };
 
+// Static method to verify OTP
+otpSchema.statics.verifyOTP = async function(identifier, code, purpose = 'verification') {
+  try {
+    // Find valid OTP
+    const otp = await this.findOne({
+      identifier,
+      code,
+      purpose,
+      isUsed: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otp) {
+      return false;
+    }
+
+    // Check attempts
+    if (otp.attempts >= 3) {
+      return false;
+    }
+
+    // Increment attempts
+    otp.attempts += 1;
+
+    // If verification successful, mark as used
+    otp.isUsed = true;
+    await otp.save();
+
+    return true;
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    return false;
+  }
+};
+
 export default mongoose.models.OTP || mongoose.model('OTP', otpSchema);

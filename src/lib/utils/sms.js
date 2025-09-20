@@ -60,10 +60,11 @@ export const sendWelcomeSMS = async (phone, fullName, role) => {
 const getOTPSMSMessage = (otp, purpose) => {
   switch (purpose) {
     case 'signup':
-      return `Your Student Nest signup OTP is ${otp}. Valid for 5 minutes. Don't share this code.`;
+    case 'verification':
+      return `Your Student Nest verification OTP is ${otp}. Valid for 5 minutes. Don't share this code.`;
     case 'login':
       return `Your Student Nest login OTP is ${otp}. Valid for 5 minutes. Don't share this code.`;
-    case 'password-reset':
+    case 'password_reset':
       return `Your Student Nest password reset OTP is ${otp}. Valid for 5 minutes. Don't share this code.`;
     default:
       return `Your Student Nest verification OTP is ${otp}. Valid for 5 minutes. Don't share this code.`;

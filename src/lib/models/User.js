@@ -47,7 +47,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['student', 'owner'],
+    enum: ['student', 'owner', 'Student', 'Owner'],
     required: true
   },
   isEmailVerified: {

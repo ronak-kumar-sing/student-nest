@@ -24,29 +24,35 @@ export default function OwnerLoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, userType: "owner" }),
+        body: JSON.stringify({ ...values, role: "owner" }),
       })
 
       const data = await res.json()
 
-      if (res.ok) {
-        if (data.data.user.verificationStatus === "pending") {
+      if (res.ok && data.success) {
+        const user = {
+          ...data.user,
+          userType: data.user.role.toLowerCase()
+        }
+
+        if (data.user.verification?.status === "pending") {
           toast.info("Please complete your verification process.")
-          localStorage.setItem("token", data.data.token)
-          localStorage.setItem("user", JSON.stringify(data.data.user))
+          localStorage.setItem("token", data.accessToken)
+          localStorage.setItem("user", JSON.stringify(user))
           window.location.href = "/owner/verify"
-        } else if (data.data.user.verificationStatus === "verified") {
+        } else if (data.user.verification?.status === "verified" || data.user.isActive) {
           toast.success("Welcome back!")
-          localStorage.setItem("token", data.data.token)
-          localStorage.setItem("user", JSON.stringify(data.data.user))
+          localStorage.setItem("token", data.accessToken)
+          localStorage.setItem("user", JSON.stringify(user))
           window.location.href = "/dashboard"
         } else {
           toast.warning("Your account is under review. Please wait for verification.")
         }
       } else {
-        toast.error(data.error || "Login failed. Please check your credentials.")
+        toast.error(data.message || data.error || "Login failed. Please check your credentials.")
       }
     } catch (error) {
+      console.error("Login error:", error)
       toast.error("Network error. Please try again.")
     } finally {
       setLoading(false)
@@ -66,8 +72,8 @@ export default function OwnerLoginPage() {
           {/* Test Credentials */}
           <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
             <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-1">Test Credentials:</p>
-            <p className="text-xs text-green-600 dark:text-green-300">Email: owner@test.com</p>
-            <p className="text-xs text-green-600 dark:text-green-300">Password: password123</p>
+            <p className="text-xs text-green-600 dark:text-green-300">Email: vikram.patel@gmail.com</p>
+            <p className="text-xs text-green-600 dark:text-green-300">Password: Owner123!</p>
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
