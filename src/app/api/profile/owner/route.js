@@ -166,3 +166,45 @@ export async function PUT(request) {
     }, { status: 500 });
   }
 }
+
+// DELETE /api/profile/owner - Delete owner profile
+export async function DELETE(request) {
+  try {
+    const { user, error } = await getAuthenticatedUser(request);
+    if (error) {
+      return NextResponse.json({
+        success: false,
+        error
+      }, { status: 401 });
+    }
+
+    // Optional: Add confirmation check
+    const url = new URL(request.url);
+    const confirmDelete = url.searchParams.get('confirm');
+
+    if (confirmDelete !== 'true') {
+      return NextResponse.json({
+        success: false,
+        error: 'Please confirm account deletion by adding ?confirm=true to the request'
+      }, { status: 400 });
+    }
+
+    // Log the deletion attempt
+    console.log(`Deleting owner account: ${user.email} (${user._id})`);
+
+    // Delete the user account
+    await Owner.findByIdAndDelete(user._id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Owner profile deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting owner profile:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to delete profile'
+    }, { status: 500 });
+  }
+}

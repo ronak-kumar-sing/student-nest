@@ -49,12 +49,14 @@ const studentSchema = new mongoose.Schema({
     budgetMin: {
       type: Number,
       min: 2000,
-      max: 50000
+      max: 50000,
+      default: 5000
     },
     budgetMax: {
       type: Number,
       min: 2000,
-      max: 50000
+      max: 50000,
+      default: 15000
     },
     locationPreferences: [{
       type: String
@@ -98,6 +100,27 @@ const studentSchema = new mongoose.Schema({
     min: 0,
     max: 100
   }
+});
+
+// Set default preferences on new student creation
+studentSchema.pre('save', function(next) {
+  // Set default room type preferences if not already set
+  if (this.isNew && (!this.preferences?.roomTypePreference || this.preferences.roomTypePreference.length === 0)) {
+    if (!this.preferences) {
+      this.preferences = {};
+    }
+    this.preferences.roomTypePreference = ['shared', 'pg']; // Default to most common preferences
+  }
+
+  // Set default amenity preferences if not set
+  if (this.isNew && (!this.preferences?.amenityPreferences || this.preferences.amenityPreferences.length === 0)) {
+    if (!this.preferences) {
+      this.preferences = {};
+    }
+    this.preferences.amenityPreferences = ['wifi', 'attached_bathroom', 'parking']; // Basic essential amenities
+  }
+
+  next();
 });
 
 // Calculate profile completeness on save

@@ -1,98 +1,52 @@
-import { NextResponse } from 'next/server';import { NextResponse } from 'next/server';
-
-import connectDB from '@/lib/db/connection';import { aadhaarVerificationSchema } from '@/lib/validation/authSchemas';
-
+import { NextResponse } from 'next/server';
+import connectDB from '@/lib/db/connection';
+import { aadhaarVerificationSchema } from '@/lib/validation/authSchemas';
 import Owner from '@/lib/models/Owner';
+import { verifyAccessToken } from '@/lib/utils/jwt';
 
-import { aadhaarVerificationSchema } from '@/lib/validation/authSchemas';// POST /api/verification/aadhaar/initiate - Initiate Aadhaar verification
-
-import { verifyAccessToken } from '@/lib/utils/jwt';export async function POST(request) {
-
+// POST /api/verification/aadhaar/initiate - Initiate Aadhaar verification
+export async function POST(request) {
   try {
+    // Get and verify JWT token first
+    const authHeader = request.headers.get('authorization');
 
-export async function POST(request) {    const body = await request.json();
-
-  try {
-
-    // Get and verify JWT token    // Validate Aadhaar data
-
-    const authHeader = request.headers.get('authorization');    const validation = aadhaarVerificationSchema.safeParse(body);
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {    if (!validation.success) {
-
-      return NextResponse.json(      return NextResponse.json(
-
-        { error: 'Unauthorized', message: 'Access token required' },        {
-
-        { status: 401 }          success: false,
-
-      );          errors: validation.error.errors.map(e => e.message)
-
-    }        },
-
-        { status: 400 }
-
-    const token = authHeader.split(' ')[1];      );
-
-    let payload;    }
-
-
-
-    try {    const { aadhaarNumber } = validation.data;
-
-      payload = verifyAccessToken(token);
-
-    } catch (error) {    // In production:
-
-      return NextResponse.json(    // 1. Mask Aadhaar number for storage (only last 4 digits visible)
-
-        { error: 'Unauthorized', message: 'Invalid or expired token' },    // 2. Store verification request in database
-
-        { status: 401 }    // 3. Integrate with Aadhaar verification service
-
-      );    // 4. Set status to 'in-review'
-
-    }    // 5. Notify admin team for manual review
-
-
-
-    const body = await request.json();    console.log(`Demo: Initiating Aadhaar verification for: ${aadhaarNumber.replace(/\d(?=\d{4})/g, '*')}`);
-
-
-
-    // Validate input    return NextResponse.json({
-
-    const validationResult = aadhaarVerificationSchema.safeParse(body);      success: true,
-
-    if (!validationResult.success) {      data: {
-
-      return NextResponse.json(        verificationId: `ver_${Math.random().toString(36).substr(2, 9)}`,
-
-        {        status: 'in-review',
-
-          error: 'Validation failed',        aadhaarNumber: aadhaarNumber.replace(/\d(?=\d{4})/g, '*'),
-
-          details: validationResult.error.errors        submittedAt: new Date().toISOString()
-
-        },      },
-
-        { status: 400 }      message: 'Aadhaar verification initiated. We will review your details within 1-2 business days.'
-
-      );    }, { status: 202 });
-
-    }  } catch (error) {
-
-    return NextResponse.json(
-
-    const { aadhaarNumber, documents } = validationResult.data;      { success: false, error: 'Verification initiation failed' },
-
-          { status: 500 }
-
-    // Connect to database    );
-
-    await connectDB();  }
-
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Access token required' },
+        { status: 401 }
+      );
     }
+
+    const token = authHeader.split(' ')[1];
+    let payload;
+
+    try {
+      payload = verifyAccessToken(token);
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+
+    // Parse and validate request body
+    const body = await request.json();
+    const validation = aadhaarVerificationSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          errors: validation.error.errors.map(e => e.message)
+        },
+        { status: 400 }
+      );
+    }
+
+    const { aadhaarNumber } = validation.data;
+
+    // Connect to database
+    await connectDB();
 
     // Find the owner
     const owner = await Owner.findById(payload.userId);
@@ -110,10 +64,6 @@ export async function POST(request) {    const body = await request.json();
       );
     }
 
-    // Mock verification process
-    const mockDelay = Math.random() * 2000 + 1000; // 1-3 seconds delay
-    await new Promise(resolve => setTimeout(resolve, mockDelay));
-
     // Mock Aadhaar validation
     const isValidAadhaar = /^\d{12}$/.test(aadhaarNumber);
     if (!isValidAadhaar) {
@@ -125,6 +75,10 @@ export async function POST(request) {    const body = await request.json();
         { status: 400 }
       );
     }
+
+    // In production, integrate with actual Aadhaar verification service
+    // For now, using mock verification process
+    console.log(`Demo: Initiating Aadhaar verification for: ${aadhaarNumber.replace(/\d(?=\d{4})/g, '*')}`);
 
     // Mock verification data (in real implementation, this would come from DigiLocker API)
     const mockDigiLockerData = {
@@ -139,7 +93,7 @@ export async function POST(request) {    const body = await request.json();
       aadhaarNumber,
       digilockerLinked: true,
       digilockerData: mockDigiLockerData,
-      verificationDocuments: documents || [],
+      verificationDocuments: [],
       status: 'in-review'
     });
 

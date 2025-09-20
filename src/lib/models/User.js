@@ -77,7 +77,12 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  lockUntil: Date
+  lockUntil: Date,
+  // User settings for notifications, privacy, etc.
+  settings: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  }
 }, {
   timestamps: true,
   discriminatorKey: 'role'

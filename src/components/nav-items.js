@@ -1,6 +1,5 @@
 import {
   Home,
-  Settings,
   CalendarClock,
   MessagesSquare,
   Bookmark,
@@ -26,5 +25,4 @@ export const NAV_ITEMS = [
   { label: "Payments", href: "/owner/payments", icon: CreditCard, roles: ["owner"] },
   { label: "Student Profile", href: "/student/profile", icon: User, roles: ["student"] },
   { label: "Owner Profile", href: "/owner/profile", icon: Building, roles: ["owner"] },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

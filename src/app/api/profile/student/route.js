@@ -7,15 +7,26 @@ import { z } from 'zod';
 // Validation schema for student profile updates
 const studentProfileSchema = z.object({
   fullName: z.string().min(2).max(100).optional(),
+  firstName: z.string().min(1).max(50).optional(),
+  lastName: z.string().min(1).max(50).optional(),
   phone: z.string().regex(/^\+?\d{10,15}$/).optional(),
   collegeId: z.string().min(1).optional(),
   collegeName: z.string().min(1).optional(),
   course: z.string().optional(),
-  yearOfStudy: z.number().min(1).max(6).optional(),
+  yearOfStudy: z.union([
+    z.number().min(1).max(6),
+    z.string().transform((val) => {
+      // Convert string like "3rd" to number 3
+      const match = val.match(/(\d+)/);
+      return match ? parseInt(match[1]) : parseInt(val);
+    }).pipe(z.number().min(1).max(6))
+  ]).optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   bio: z.string().max(500).optional(),
-  avatar: z.string().url().optional()
+  avatar: z.string().url().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional()
 });
 
 // Helper function to verify JWT token and get user
@@ -158,6 +169,17 @@ export async function PUT(request) {
     // Update last active timestamp
     updateData.lastActive = new Date();
 
+    // Handle firstName/lastName combination
+    if (updateData.firstName || updateData.lastName) {
+      const firstName = updateData.firstName || user.fullName?.split(' ')[0] || '';
+      const lastName = updateData.lastName || user.fullName?.split(' ').slice(1).join(' ') || '';
+      updateData.fullName = `${firstName} ${lastName}`.trim();
+
+      // Remove individual fields as they're not stored separately
+      delete updateData.firstName;
+      delete updateData.lastName;
+    }
+
     // Update the user
     Object.assign(user, updateData);
     await user.save();
@@ -173,6 +195,48 @@ export async function PUT(request) {
     return NextResponse.json({
       success: false,
       error: 'Failed to update profile'
+    }, { status: 500 });
+  }
+}
+
+// DELETE /api/profile/student - Delete student profile
+export async function DELETE(request) {
+  try {
+    const { user, error } = await getAuthenticatedUser(request);
+    if (error) {
+      return NextResponse.json({
+        success: false,
+        error
+      }, { status: 401 });
+    }
+
+    // Optional: Add confirmation check
+    const url = new URL(request.url);
+    const confirmDelete = url.searchParams.get('confirm');
+
+    if (confirmDelete !== 'true') {
+      return NextResponse.json({
+        success: false,
+        error: 'Please confirm account deletion by adding ?confirm=true to the request'
+      }, { status: 400 });
+    }
+
+    // Log the deletion attempt
+    console.log(`Deleting student account: ${user.email} (${user._id})`);
+
+    // Delete the user account
+    await Student.findByIdAndDelete(user._id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Student profile deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting student profile:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to delete profile'
     }, { status: 500 });
   }
 }
