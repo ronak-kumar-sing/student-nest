@@ -104,11 +104,12 @@ otpSchema.statics.createOTP = async function(identifier, type, purpose = 'verifi
 };
 
 // Static method to verify OTP
-otpSchema.statics.verifyOTP = async function(identifier, code, purpose = 'verification') {
+otpSchema.statics.verifyOTP = async function(identifier, type, code, purpose = 'verification') {
   try {
     // Find valid OTP
     const otp = await this.findOne({
       identifier,
+      type,
       code,
       purpose,
       isUsed: false,
@@ -116,25 +117,33 @@ otpSchema.statics.verifyOTP = async function(identifier, code, purpose = 'verifi
     });
 
     if (!otp) {
-      return false;
+      return {
+        success: false,
+        message: 'Invalid or expired OTP'
+      };
     }
 
     // Check attempts
     if (otp.attempts >= 3) {
-      return false;
+      return {
+        success: false,
+        message: 'Maximum verification attempts exceeded'
+      };
     }
 
-    // Increment attempts
-    otp.attempts += 1;
+    // Verify OTP using the instance method
+    await otp.verify(code);
 
-    // If verification successful, mark as used
-    otp.isUsed = true;
-    await otp.save();
-
-    return true;
+    return {
+      success: true,
+      message: 'OTP verified successfully'
+    };
   } catch (error) {
     console.error('OTP verification error:', error);
-    return false;
+    return {
+      success: false,
+      message: 'Verification failed'
+    };
   }
 };
 

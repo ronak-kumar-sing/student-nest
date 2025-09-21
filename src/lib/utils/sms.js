@@ -1,3 +1,5 @@
+import { sendSMS, sendWhatsApp, TWILIO_CONFIG } from '../twilio.js';
+
 const PHONE_SERVICE = process.env.PHONE_SERVICE || 'mock';
 const PHONE_OTP_SENDER_ID = process.env.PHONE_OTP_SENDER_ID || 'STDNST';
 
@@ -20,13 +22,21 @@ export const sendOTPSMS = async (phone, otp, purpose = 'verification') => {
 
     if (PHONE_SERVICE === 'mock') {
       result = await mockSMSService.sendSMS(phone, message);
+    } else if (PHONE_SERVICE === 'twilio') {
+      try {
+        // Try WhatsApp first (cheaper), fallback to SMS
+        result = await sendWhatsApp(phone, message);
+        result.channel = 'whatsapp';
+      } catch (whatsappError) {
+        console.log('WhatsApp failed, falling back to SMS:', whatsappError.message);
+        result = await sendSMS(phone, message);
+        result.channel = 'sms';
+      }
     } else {
-      // Implement real SMS service here (Twilio, AWS SNS, etc.)
-      // For now, using mock service
       result = await mockSMSService.sendSMS(phone, message);
     }
 
-    console.log('✅ OTP SMS sent successfully:', result.messageId);
+    console.log('✅ OTP SMS sent successfully:', result.messageSid || result.messageId);
     return result;
   } catch (error) {
     console.error('❌ Error sending OTP SMS:', error);
@@ -43,16 +53,95 @@ export const sendWelcomeSMS = async (phone, fullName, role) => {
 
     if (PHONE_SERVICE === 'mock') {
       result = await mockSMSService.sendSMS(phone, message);
+    } else if (PHONE_SERVICE === 'twilio') {
+      try {
+        result = await sendWhatsApp(phone, message);
+        result.channel = 'whatsapp';
+      } catch (whatsappError) {
+        result = await sendSMS(phone, message);
+        result.channel = 'sms';
+      }
     } else {
-      // Implement real SMS service here
       result = await mockSMSService.sendSMS(phone, message);
     }
 
-    console.log('✅ Welcome SMS sent successfully:', result.messageId);
+    console.log('✅ Welcome SMS sent successfully:', result.messageSid || result.messageId);
     return result;
   } catch (error) {
     console.error('❌ Error sending welcome SMS:', error);
-    // Don't throw error for welcome SMS, just log it
+    throw new Error('Failed to send welcome SMS');
+  }
+};
+
+// Send meeting notification SMS
+export const sendMeetingNotificationSMS = async (phone, type, data) => {
+  let message;
+
+  switch (type) {
+    case 'request':
+      message = TWILIO_CONFIG.MEETING_REQUEST(data.studentName, data.propertyName);
+      break;
+    case 'confirmed':
+      message = TWILIO_CONFIG.MEETING_CONFIRMED(data.ownerName, data.date, data.time);
+      break;
+    case 'cancelled':
+      message = `Your meeting with ${data.otherParty} has been cancelled. Check your dashboard for details.`;
+      break;
+    default:
+      message = `Meeting update: ${data.message}`;
+  }
+
+  try {
+    let result;
+
+    if (PHONE_SERVICE === 'mock') {
+      result = await mockSMSService.sendSMS(phone, message);
+    } else if (PHONE_SERVICE === 'twilio') {
+      try {
+        result = await sendWhatsApp(phone, message);
+        result.channel = 'whatsapp';
+      } catch (whatsappError) {
+        result = await sendSMS(phone, message);
+        result.channel = 'sms';
+      }
+    } else {
+      result = await mockSMSService.sendSMS(phone, message);
+    }
+
+    console.log('✅ Meeting notification SMS sent successfully:', result.messageSid || result.messageId);
+    return result;
+  } catch (error) {
+    console.error('❌ Error sending meeting notification SMS:', error);
+    // Don't throw error for notifications, just log
+  }
+};
+
+// Send verification status SMS
+export const sendVerificationStatusSMS = async (phone, status) => {
+  const message = TWILIO_CONFIG.VERIFICATION_STATUS(status);
+
+  try {
+    let result;
+
+    if (PHONE_SERVICE === 'mock') {
+      result = await mockSMSService.sendSMS(phone, message);
+    } else if (PHONE_SERVICE === 'twilio') {
+      try {
+        result = await sendWhatsApp(phone, message);
+        result.channel = 'whatsapp';
+      } catch (whatsappError) {
+        result = await sendSMS(phone, message);
+        result.channel = 'sms';
+      }
+    } else {
+      result = await mockSMSService.sendSMS(phone, message);
+    }
+
+    console.log('✅ Verification status SMS sent successfully:', result.messageSid || result.messageId);
+    return result;
+  } catch (error) {
+    console.error('❌ Error sending verification status SMS:', error);
+    // Don't throw error for notifications, just log
   }
 };
 

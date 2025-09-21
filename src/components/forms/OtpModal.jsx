@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { Button } from "@/components/ui/button"
@@ -10,12 +10,20 @@ export function OtpModal({ open, onOpenChange, channel, onVerify, onResend }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  // Clear OTP when modal opens or channel changes
+  useEffect(() => {
+    if (open) {
+      setOtp("")
+      setError(null)
+    }
+  }, [open, channel])
+
   async function handleVerify() {
     setLoading(true)
     setError(null)
     try {
       await onVerify(otp)
-      setOtp("")
+      setOtp("") // Clear on successful verification
       onOpenChange(false)
     } catch (e) {
       setError(e?.message ?? "Verification failed. Try again.")
@@ -26,6 +34,7 @@ export function OtpModal({ open, onOpenChange, channel, onVerify, onResend }) {
 
   async function handleResend() {
     setError(null)
+    setOtp("") // Clear OTP input when resending
     try {
       await onResend()
     } catch (e) {

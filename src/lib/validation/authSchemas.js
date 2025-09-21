@@ -11,7 +11,29 @@ export const emailSchema = z.string().email("Enter a valid email");
 
 export const phoneSchema = z
   .string()
-  .regex(/^\+?\d{10,15}$/, "Enter a valid phone number");
+  .min(1, "Phone number is required")
+  .transform((phone) => {
+    // Auto-add +91 for Indian numbers if not present
+    let cleaned = phone.trim();
+
+    // Remove any spaces, dashes, or parentheses
+    cleaned = cleaned.replace(/[\s\-\(\)]/g, '');
+
+    // If it's a 10-digit number without country code, add +91
+    if (/^\d{10}$/.test(cleaned)) {
+      cleaned = '+91' + cleaned;
+    }
+
+    // If it starts with 91 but no +, add the +
+    if (/^91\d{10}$/.test(cleaned)) {
+      cleaned = '+' + cleaned;
+    }
+
+    return cleaned;
+  })
+  .refine((phone) => /^\+91\d{10}$/.test(phone), {
+    message: "Please provide a valid 10-digit Indian mobile number"
+  });
 
 export const otpSchema = z.string().regex(/^\d{6}$/, "Enter 6-digit OTP");
 
@@ -70,12 +92,20 @@ export const aadhaarVerificationSchema = z.object({
 
 // Helper function to validate and sanitize phone numbers
 export const sanitizePhone = (phone) => {
-  // Remove all non-digit characters except +
-  const cleaned = phone.replace(/[^\d+]/g, '');
+  // Auto-add +91 for Indian numbers if not present
+  let cleaned = phone.trim();
 
-  // Add +91 for Indian numbers if not present
-  if (cleaned.length === 10 && !cleaned.startsWith('+')) {
-    return '+91' + cleaned;
+  // Remove any spaces, dashes, or parentheses
+  cleaned = cleaned.replace(/[\s\-\(\)]/g, '');
+
+  // If it's a 10-digit number without country code, add +91
+  if (/^\d{10}$/.test(cleaned)) {
+    cleaned = '+91' + cleaned;
+  }
+
+  // If it starts with 91 but no +, add the +
+  if (/^91\d{10}$/.test(cleaned)) {
+    cleaned = '+' + cleaned;
   }
 
   return cleaned;

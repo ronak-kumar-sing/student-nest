@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ownerSignupSchema } from "@/lib/validation/authSchemas"
 import { InputField } from "@/components/forms/InputField"
+import { PhoneInputField } from "@/components/forms/PhoneInputField"
 import { PasswordInput } from "@/components/forms/PasswordInput"
 import { Button } from "@/components/ui/button"
 import { OtpModal } from "@/components/forms/OtpModal"
@@ -157,35 +158,31 @@ export default function OwnerSignupPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex gap-2">
+              <div className="flex gap-3 items-end">
                 <div className="flex-1">
-                  <InputField
+                  <PhoneInputField
                     id="phone"
                     label="Phone"
                     required
-                    type="tel"
-                    placeholder="+91XXXXXXXXXX"
                     {...register("phone")}
                     error={errors.phone?.message}
                   />
                 </div>
-                <div className="flex items-end">
-                  <Button
-                    type="button"
-                    variant={phoneVerified ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => sendOtp("phone")}
-                    disabled={phoneVerified}
-                    className="whitespace-nowrap"
-                  >
-                    {phoneVerified ? (
-                      <>
-                        <Badge variant="secondary" className="mr-1">✓</Badge>
-                        Verified
-                      </>
-                    ) : "Verify"}
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant={phoneVerified ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => sendOtp("phone")}
+                  disabled={phoneVerified}
+                  className="whitespace-nowrap h-8 px-3"
+                >
+                  {phoneVerified ? (
+                    <>
+                      <Badge variant="secondary" className="mr-1">✓</Badge>
+                      Verified
+                    </>
+                  ) : "Verify"}
+                </Button>
               </div>
             </div>
 

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db/connection';
-import Owner from '@/lib/models/Owner';
+import { studentSignupSchema } from '@/lib/validation/authSchemas';
+import Student from '@/lib/models/Student';
 import OTP from '@/lib/models/OTP';
-import { ownerSignupSchema, normalizeEmail, sanitizePhone } from '@/lib/validation/authSchemas';
 import { generateTokens } from '@/lib/utils/jwt';
 import { sendWelcomeEmail } from '@/lib/utils/email';
 import { sendWelcomeSMS } from '@/lib/utils/sms';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
+import bcrypt from 'bcryptjs';
 
 // Rate limiter: 3 signups per hour per IP
 const rateLimiter = new RateLimiterMemory({
@@ -15,9 +16,11 @@ const rateLimiter = new RateLimiterMemory({
   duration: 60 * 60, // 1 hour
 });
 
+// POST /api/auth/student/signup - Student registration
 export async function POST(request) {
   try {
     const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const body = await request.json();
 
     // Check rate limit
     try {
@@ -25,37 +28,86 @@ export async function POST(request) {
     } catch (rateLimiterRes) {
       return NextResponse.json(
         {
+          success: false,
           error: 'Too many signup attempts',
-          message: `Try again in ${Math.round(rateLimiterRes.msBeforeNext / 1000 / 60)} minutes`,
+          message: `Please wait ${Math.round(rateLimiterRes.msBeforeNext / 1000)} seconds before trying again`,
           retryAfter: Math.round(rateLimiterRes.msBeforeNext / 1000)
         },
         { status: 429 }
       );
     }
 
-    const body = await request.json();
-
-    // Validate input
-    const validationResult = ownerSignupSchema.safeParse(body);
-    if (!validationResult.success) {
+    // Validate student data
+    const validation = studentSignupSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
         {
-          error: 'Validation failed',
-          details: validationResult.error.errors
+          success: false,
+          errors: validation.error.errors.map(e => e.message)
         },
         { status: 400 }
       );
     }
 
-    const userData = validationResult.data;
-    userData.email = normalizeEmail(userData.email);
+      return NextResponse.json(    // In production:
+
+        {    // 1. Hash the password
+
+          error: 'Too many signup attempts',    // 2. Save to database
+
+          message: `Try again in ${Math.round(rateLimiterRes.msBeforeNext / 1000 / 60)} minutes`,    // 3. Send welcome email
+
+          retryAfter: Math.round(rateLimiterRes.msBeforeNext / 1000)
+
+        },    return NextResponse.json({
+
+        { status: 429 }      success: true,
+
+      );      data: {
+
+    }        id: Math.floor(Math.random() * 1000),
+
+        fullName,
+
+    const body = await request.json();        email,
+
+            phone,
+
+    // Validate input        collegeId,
+
+    const validationResult = studentSignupSchema.safeParse(body);        collegeName,
+
+    if (!validationResult.success) {        userType: 'student',
+
+      return NextResponse.json(        createdAt: new Date().toISOString()
+
+        {      },
+
+          error: 'Validation failed',      message: 'Student account created successfully'
+
+          details: validationResult.error.errors    }, { status: 201 });
+
+        },  } catch (error) {
+
+        { status: 400 }    return NextResponse.json(
+
+      );      { success: false, error: 'Registration failed' },
+
+    }      { status: 500 }
+
+    );
+
+    const userData = validationResult.data;  }
+
+    userData.email = normalizeEmail(userData.email);}
+
     userData.phone = sanitizePhone(userData.phone);
 
     // Connect to database
     await connectDB();
 
     // Check if user already exists
-    const existingUser = await Owner.findOne({
+    const existingUser = await Student.findOne({
       $or: [
         { email: userData.email },
         { phone: userData.phone }
@@ -73,11 +125,12 @@ export async function POST(request) {
       );
     }
 
-    // Verify email OTP - look for successfully verified OTP
+    // Verify email OTP
     const emailOTP = await OTP.findOne({
       identifier: userData.email,
       type: 'email',
-      isUsed: true
+      isUsed: false,
+      expiresAt: { $gt: new Date() }
     }).sort({ createdAt: -1 });
 
     if (!emailOTP) {
@@ -90,11 +143,12 @@ export async function POST(request) {
       );
     }
 
-    // Verify phone OTP - look for successfully verified OTP
+    // Verify phone OTP
     const phoneOTP = await OTP.findOne({
       identifier: userData.phone,
       type: 'phone',
-      isUsed: true
+      isUsed: false,
+      expiresAt: { $gt: new Date() }
     }).sort({ createdAt: -1 });
 
     if (!phoneOTP) {
@@ -107,16 +161,15 @@ export async function POST(request) {
       );
     }
 
-    // Create new owner - discriminator automatically sets role
-    const owner = new Owner({
+    // Create new student
+    const student = new Student({
       ...userData,
+      role: 'student',
       isEmailVerified: true,
-      isPhoneVerified: true,
-      // Owner accounts start as inactive until verified
-      isActive: false
+      isPhoneVerified: true
     });
 
-    await owner.save();
+    await student.save();
 
     // Mark OTPs as used
     await OTP.updateMany(
@@ -131,35 +184,34 @@ export async function POST(request) {
     );
 
     // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(owner);
+    const { accessToken, refreshToken } = generateTokens(student);
 
     // Store refresh token
-    owner.refreshTokens.push({
+    student.refreshTokens.push({
       token: refreshToken,
       createdAt: new Date()
     });
 
-    await owner.save();
+    await student.save();
 
     // Send welcome emails/SMS (don't wait for them)
     try {
-      sendWelcomeEmail(owner.email, owner.fullName, 'owner');
-      sendWelcomeSMS(owner.phone, owner.fullName, 'owner');
+      sendWelcomeEmail(student.email, student.fullName, 'student');
+      sendWelcomeSMS(student.phone, student.fullName, 'student');
     } catch (error) {
       console.error('Error sending welcome messages:', error);
       // Don't fail the signup for this
     }
 
     // Prepare user data for response
-    const userData_response = owner.toPublicProfile();
+    const userData_response = student.toPublicProfile();
 
     // Set refresh token as httpOnly cookie
     const response = NextResponse.json({
       success: true,
-      message: 'Owner account created successfully. Please complete verification to activate your account.',
+      message: 'Student account created successfully',
       user: userData_response,
-      accessToken,
-      nextStep: 'verification'
+      accessToken
     }, { status: 201 });
 
     response.cookies.set('refreshToken', refreshToken, {
@@ -172,11 +224,11 @@ export async function POST(request) {
     return response;
 
   } catch (error) {
-    console.error('Owner signup error:', error);
+    console.error('Student signup error:', error);
 
     // Handle specific MongoDB errors
     if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)?.[0];
+      const field = Object.keys(error.keyPattern)[0];
       return NextResponse.json(
         {
           error: 'Duplicate field',
