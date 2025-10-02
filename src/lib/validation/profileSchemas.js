@@ -7,7 +7,7 @@ export const baseProfileSchema = z.object({
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
   dateOfBirth: z.string().optional(),
   gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).optional(),
-  avatar: z.string().url().optional(),
+
 });
 
 // Student profile schemas
@@ -118,15 +118,7 @@ export const notificationPreferencesSchema = z.object({
   messageNotifications: z.boolean(),
 });
 
-// Avatar upload schema
-export const avatarUploadSchema = z.object({
-  avatar: z.instanceof(File, { message: "Avatar image is required" })
-    .refine((file) => file.size <= 2000000, "File size should be less than 2MB")
-    .refine(
-      (file) => ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type),
-      "Only JPEG, PNG, WebP files are allowed"
-    ),
-});
+
 
 // Privacy settings schema
 export const privacySettingsSchema = z.object({

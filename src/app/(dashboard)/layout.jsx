@@ -2,6 +2,7 @@
 
 import { UserSidebar } from "@/components/user-sidebar";
 import { useEffect, useState } from "react";
+import VerificationGuard from "@/components/verification/VerificationGuard";
 
 export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
@@ -43,10 +44,12 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <UserSidebar user={user}>
-      <div className="p-4 md:p-6 lg:p-8">
-        {children}
-      </div>
-    </UserSidebar>
+    <VerificationGuard userRole={user.role} showPrompt={true}>
+      <UserSidebar user={user}>
+        <div className="p-4 md:p-6 lg:p-8">
+          {children}
+        </div>
+      </UserSidebar>
+    </VerificationGuard>
   );
 }

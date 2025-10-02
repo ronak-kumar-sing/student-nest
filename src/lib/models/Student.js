@@ -23,10 +23,6 @@ const studentSchema = new mongoose.Schema({
     max: 6
   },
   // Profile fields
-  avatar: {
-    type: String, // URL to avatar image
-    default: null
-  },
   city: {
     type: String,
     trim: true
@@ -123,16 +119,15 @@ studentSchema.pre('save', function(next) {
   next();
 });
 
-// Calculate profile completeness on save
-studentSchema.pre('save', function(next) {
+// Calculate profile completeness (out of 100%)
+studentSchema.methods.calculateProfileCompleteness = function() {
   let completeness = 0;
-  const totalFields = 12;
+  const totalFields = 11;
 
   // Basic fields
   if (this.fullName) completeness++;
   if (this.email) completeness++;
   if (this.phone) completeness++;
-  if (this.avatar) completeness++;
 
   // Academic fields
   if (this.collegeId) completeness++;
@@ -144,13 +139,12 @@ studentSchema.pre('save', function(next) {
   if (this.city) completeness++;
   if (this.state) completeness++;
 
-  // Preferences
-  if (this.preferences?.roomTypePreference?.length > 0) completeness++;
-  if (this.preferences?.budgetMin && this.preferences?.budgetMax) completeness++;
+  // Additional fields
+  if (this.bio) completeness++;
+  if (this.emergencyContact && this.emergencyContact.name) completeness++;
 
-  this.profileCompleteness = Math.round((completeness / totalFields) * 100);
-  next();
-});
+  return Math.round((completeness / totalFields) * 100);
+};
 
 // Use existing model if it exists, otherwise create new discriminator
 const Student = mongoose.models.Student || User.discriminator('Student', studentSchema);

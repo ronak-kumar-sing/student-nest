@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import ProfileNavigation from '@/components/profile/ProfileNavigation';
+import QuickVerificationStatus from '@/components/verification/QuickVerificationStatus';
 import { studentSettingsSchema } from '@/lib/validation/profileSchemas';
 import { getStudentSettings, updateStudentSettings, deleteStudentAccount } from '@/lib/api';
 import {
@@ -26,7 +27,8 @@ import {
   Save,
   RefreshCw,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  ShieldCheck
 } from 'lucide-react';
 
 function StudentSettingsPage() {
@@ -262,6 +264,22 @@ function StudentSettingsPage() {
                         </FormItem>
                       )}
                     />
+                  </CardContent>
+                </Card>
+
+                {/* Identity Verification */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ShieldCheck size={20} className="text-blue-600" />
+                      Identity Verification
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <QuickVerificationStatus showActions={true} />
+                    <div className="mt-4 text-sm text-gray-600">
+                      <p>Identity verification helps protect your account and builds trust with property owners.</p>
+                    </div>
                   </CardContent>
                 </Card>
 

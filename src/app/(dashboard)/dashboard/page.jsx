@@ -16,9 +16,12 @@ import {
 import { useEffect, useState } from "react";
 import RoomBrowser from "@/components/room/RoomBrowser";
 import SplitText from "@/components/animations/SplitText";
+import VerificationWidget from "@/components/verification/VerificationWidget";
+import { useVerificationStatus } from "@/components/verification/VerificationGuard";
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
+  const { verificationStatus, isVerified } = useVerificationStatus();
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -41,6 +44,11 @@ export default function DashboardPage() {
   if (isStudent) {
     return (
       <div className="space-y-6">
+        {/* Verification Widget */}
+        {!isVerified && (
+          <VerificationWidget userRole="student" compact={false} />
+        )}
+
         {/* Welcome Header */}
         {/* <div className="border-b border-gray-700 pb-6">
           <h1 className="text-3xl font-bold text-white mb-2">

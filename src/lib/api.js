@@ -149,6 +149,15 @@ class ApiClient {
     });
   }
 
+  async uploadAvatar(formData) {
+    // Accept FormData directly from the caller
+    return this.request('/profile/upload-avatar', {
+      method: 'POST',
+      body: formData,
+      headers: {} // Remove Content-Type header to let browser set it for FormData
+    });
+  }
+
   async getStudentPreferences() {
     return this.request('/profile/student/preferences', {
       method: 'GET',
@@ -203,13 +212,7 @@ class ApiClient {
     });
   }
 
-  async uploadAvatar(formData) {
-    return this.request('/upload/avatar', {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Remove Content-Type to let browser set it for FormData
-    });
-  }
+
 
   async changePassword(passwordData) {
     return this.request('/profile/password', {
@@ -348,6 +351,7 @@ export const initiateAadhaarVerification = apiClient.initiateAadhaarVerification
 export const initiateDigilockerVerification = apiClient.initiateDigiLockerVerification.bind(apiClient);
 export const getStudentProfile = apiClient.getStudentProfile.bind(apiClient);
 export const updateStudentProfile = apiClient.updateStudentProfile.bind(apiClient);
+export const uploadAvatar = apiClient.uploadAvatar.bind(apiClient);
 export const getStudentPreferences = apiClient.getStudentPreferences.bind(apiClient);
 export const updateStudentPreferences = apiClient.updateStudentPreferences.bind(apiClient);
 export const getStudentSettings = apiClient.getStudentSettings.bind(apiClient);
@@ -364,7 +368,7 @@ export const updateOwnerSettings = apiClient.updateOwnerSettings.bind(apiClient)
 export const deleteOwnerAccount = apiClient.deleteOwnerAccount.bind(apiClient);
 export const getOwnerVerification = apiClient.getOwnerVerification.bind(apiClient);
 export const uploadOwnerVerification = apiClient.uploadOwnerVerification.bind(apiClient);
-export const uploadAvatar = apiClient.uploadAvatar.bind(apiClient);
+
 export const changePassword = apiClient.changePassword.bind(apiClient);
 export const getNotificationSettings = apiClient.getNotificationSettings.bind(apiClient);
 export const updateNotificationSettings = apiClient.updateNotificationSettings.bind(apiClient);

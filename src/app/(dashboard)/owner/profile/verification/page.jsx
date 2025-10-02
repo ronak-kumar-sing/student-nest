@@ -1,197 +1,139 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import ProfileNavigation from '@/components/profile/ProfileNavigation';
-import VerificationBadge from '@/components/profile/VerificationBadge';
-import { getOwnerProfile, initiateAadhaarVerification, initiateDigilockerVerification } from '@/lib/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import {
   Shield,
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  FileText,
-  Upload,
-  RefreshCw,
-  Loader2,
-  ExternalLink,
-  User,
-  CreditCard,
+  ShieldCheck,
   Building,
-  Briefcase,
-  Award
+  FileText,
+  Camera,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  ArrowRight,
+  ArrowLeft,
+  Info,
+  User
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import ProfileNavigation from '@/components/profile/ProfileNavigation';
+import DocumentUpload from '@/components/verification/DocumentUpload';
+import SelfieCapture from '@/components/verification/SelfieCapture';
 
-const ownerVerificationSteps = [
-  {
-    id: 'email',
-    title: 'Email Verification',
-    description: 'Verify your email address',
-    icon: CheckCircle,
-    required: true
-  },
-  {
-    id: 'phone',
-    title: 'Phone Verification',
-    description: 'Verify your phone number',
-    icon: CheckCircle,
-    required: true
-  },
-  {
-    id: 'aadhaar',
-    title: 'Aadhaar Verification',
-    description: 'Verify your identity with Aadhaar',
-    icon: User,
-    required: true
-  },
-  {
-    id: 'pan',
-    title: 'PAN Verification',
-    description: 'Verify your PAN card',
-    icon: CreditCard,
-    required: true
-  },
-  {
-    id: 'business',
-    title: 'Business Verification',
-    description: 'Verify your business documents',
-    icon: Building,
-    required: false
-  },
-  {
-    id: 'gst',
-    title: 'GST Verification',
-    description: 'Verify your GST registration',
-    icon: FileText,
-    required: false
-  },
-  {
-    id: 'property',
-    title: 'Property Ownership',
-    description: 'Verify property ownership documents',
-    icon: Briefcase,
-    required: false
-  }
-];
-
-function OwnerVerificationPage() {
-  const [profile, setProfile] = useState(null);
+export default function OwnerVerificationPage() {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [verificationData, setVerificationData] = useState({
+    document: null,
+    selfie: null,
+    status: 'pending'
+  });
+  const [verificationStatus, setVerificationStatus] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [verifying, setVerifying] = useState({});
+  const [authToken, setAuthToken] = useState('');
+  const router = useRouter();
+
+  const steps = [
+    { id: 'document', title: 'Document Upload', icon: FileText },
+    { id: 'selfie', title: 'Selfie Verification', icon: Camera },
+    { id: 'review', title: 'Review & Complete', icon: CheckCircle }
+  ];
+
+  // Helper function to check if a step is completed
+  const isStepCompleted = (stepName) => {
+    if (verificationStatus?.verification?.simpleSteps) {
+      return verificationStatus.verification.simpleSteps[stepName] === 'completed';
+    }
+    return verificationStatus?.verification?.completedSteps?.includes(stepName) || false;
+  };
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/');
+      return;
+    }
+    setAuthToken(token);
+    fetchVerificationStatus(token);
+  }, [router]);
 
-  const fetchProfile = async () => {
-    setLoading(true);
+  const fetchVerificationStatus = async (token) => {
     try {
-      const response = await getOwnerProfile();
-      if (response.success) {
-        setProfile(response.data);
+      const response = await fetch('/api/verify/requirements', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setVerificationStatus(result.data);
+
+        // Set current step based on completion - using direct data since state update is async
+        const verification = result.data.verification;
+        const checkStepCompleted = (stepName) => {
+          if (verification?.simpleSteps) {
+            return verification.simpleSteps[stepName] === 'completed';
+          }
+          return verification?.completedSteps?.includes(stepName) || false;
+        };
+
+        if (checkStepCompleted('review')) {
+          setCurrentStep(2);
+        } else if (checkStepCompleted('selfie')) {
+          setCurrentStep(2);
+        } else if (checkStepCompleted('document')) {
+          setCurrentStep(1);
+        } else {
+          setCurrentStep(0);
+        }
+      } else {
+        toast.error('Failed to load verification status');
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching verification status:', error);
+      toast.error('Failed to load verification status');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAadhaarVerification = async () => {
-    setVerifying({ ...verifying, aadhaar: true });
-    try {
-      const response = await initiateAadhaarVerification();
-      if (response.success) {
-        alert('Aadhaar verification initiated. Please complete the process.');
-      }
-    } catch (error) {
-      console.error('Error initiating Aadhaar verification:', error);
-      alert('Failed to initiate Aadhaar verification. Please try again.');
-    } finally {
-      setVerifying({ ...verifying, aadhaar: false });
-    }
+  const handleDocumentUploadSuccess = (documentData) => {
+    setVerificationData(prev => ({ ...prev, document: documentData }));
+    toast.success('Document uploaded successfully! Proceeding to selfie verification.');
+    setCurrentStep(1);
+    fetchVerificationStatus(authToken);
   };
 
-  const handleDigilockerVerification = async () => {
-    setVerifying({ ...verifying, digilocker: true });
-    try {
-      const response = await initiateDigilockerVerification();
-      if (response.success) {
-        alert('DigiLocker verification initiated. Please complete the process.');
-      }
-    } catch (error) {
-      console.error('Error initiating DigiLocker verification:', error);
-      alert('Failed to initiate DigiLocker verification. Please try again.');
-    } finally {
-      setVerifying({ ...verifying, digilocker: false });
-    }
+  const handleSelfieUploadSuccess = (selfieData) => {
+    setVerificationData(prev => ({ ...prev, selfie: selfieData }));
+    toast.success('Selfie uploaded successfully! Verification complete.');
+    setCurrentStep(2);
+    fetchVerificationStatus(authToken);
   };
 
-  const getVerificationStatus = (verificationType) => {
-    if (!profile) return 'pending';
-
-    switch (verificationType) {
-      case 'email':
-        return profile.emailVerified ? 'verified' : 'pending';
-      case 'phone':
-        return profile.phoneVerified ? 'verified' : 'pending';
-      case 'aadhaar':
-        return profile.aadhaarVerified ? 'verified' : 'pending';
-      case 'pan':
-        return profile.panVerified ? 'verified' : 'pending';
-      case 'business':
-        return profile.businessVerified ? 'verified' : 'pending';
-      case 'gst':
-        return profile.gstVerified ? 'verified' : 'pending';
-      case 'property':
-        return profile.propertyVerified ? 'verified' : 'pending';
-      default:
-        return 'pending';
-    }
+  const handleError = (error) => {
+    toast.error(error || 'Verification failed. Please try again.');
   };
 
-  const getVerificationBadge = (status) => {
-    switch (status) {
-      case 'verified':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Verified</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="border-yellow-300 text-yellow-700">Pending</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
-      default:
-        return <Badge variant="outline">Not Started</Badge>;
-    }
-  };
-
-  const calculateCompletionPercentage = () => {
-    if (!profile) return 0;
-
-    const totalSteps = ownerVerificationSteps.length;
-    const completedSteps = ownerVerificationSteps.filter(step =>
-      getVerificationStatus(step.id) === 'verified'
-    ).length;
-
-    return Math.round((completedSteps / totalSteps) * 100);
-  };
-
-  const getTrustLevel = () => {
-    const percentage = calculateCompletionPercentage();
-    if (percentage >= 85) return { level: 'Elite', color: 'text-purple-600', bg: 'bg-purple-100' };
-    if (percentage >= 70) return { level: 'Premium', color: 'text-blue-600', bg: 'bg-blue-100' };
-    if (percentage >= 50) return { level: 'Trusted', color: 'text-green-600', bg: 'bg-green-100' };
-    return { level: 'Basic', color: 'text-yellow-600', bg: 'bg-yellow-100' };
+  const handleCompleteVerification = () => {
+    toast.success('Identity verification completed successfully! You can now list properties.');
+    router.push('/owner/profile');
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
-            <div className="flex items-center gap-3 text-gray-400">
-              <RefreshCw size={24} className="animate-spin" />
-              <span>Loading verification status...</span>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading verification status...</p>
             </div>
           </div>
         </div>
@@ -199,235 +141,267 @@ function OwnerVerificationPage() {
     );
   }
 
-  const completionPercentage = calculateCompletionPercentage();
-  const trustLevel = getTrustLevel();
+  // Show completed status
+  if (verificationStatus?.user?.isIdentityVerified) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <ProfileNavigation />
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Shield size={24} className="text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Business Verification</h1>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Navigation Sidebar */}
-          <div className="lg:col-span-1">
-            <ProfileNavigation userType="owner" />
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Verification Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Verification Progress</span>
-                  <div className="flex items-center gap-3">
-                    <Badge
-                      variant="secondary"
-                      className={`text-lg px-3 py-1 ${trustLevel.bg} ${trustLevel.color}`}
-                    >
-                      {trustLevel.level} Owner
-                    </Badge>
-                    <Badge variant="secondary" className="text-lg px-3 py-1">
-                      {completionPercentage}% Complete
-                    </Badge>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500"
-                      style={{ width: `${completionPercentage}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>Complete all verifications to become a trusted property owner</span>
-                    <VerificationBadge
-                      emailVerified={profile?.emailVerified}
-                      phoneVerified={profile?.phoneVerified}
-                      idVerified={profile?.aadhaarVerified}
-                    />
+          <div className="mt-8 max-w-2xl mx-auto">
+            <Card className="border-green-200 bg-green-50">
+              <CardHeader className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <ShieldCheck className="w-8 h-8 text-green-600" />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Trust Level Benefits */}
-            <Card className={`border-2 ${trustLevel.bg} border-opacity-30`}>
-              <CardHeader>
-                <CardTitle className={`flex items-center gap-2 ${trustLevel.color}`}>
-                  <Award size={20} />
-                  {trustLevel.level} Owner Benefits
-                </CardTitle>
+                <CardTitle className="text-green-900">Identity Verified Successfully!</CardTitle>
+                <Badge variant="default" className="bg-green-600 mt-2">
+                  Verified Property Owner
+                </Badge>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <h4 className={`font-semibold ${trustLevel.color}`}>
-                      Priority Listing Display
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Your properties appear higher in search results
-                    </p>
+
+              <CardContent className="space-y-4">
+                <Alert className="border-green-200 bg-green-100">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    Your identity has been verified successfully. You can now list properties and gain user trust.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-white rounded-lg border border-green-200">
+                    <FileText className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                    <h4 className="font-semibold text-sm">Document</h4>
+                    <p className="text-xs text-gray-600">Verified</p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className={`font-semibold ${trustLevel.color}`}>
-                      Increased Student Trust
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Students are more likely to inquire about verified properties
-                    </p>
+                  <div className="text-center p-4 bg-white rounded-lg border border-green-200">
+                    <Camera className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                    <h4 className="font-semibold text-sm">Selfie</h4>
+                    <p className="text-xs text-gray-600">Verified</p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className={`font-semibold ${trustLevel.color}`}>
-                      Lower Commission Rates
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Enjoy reduced platform fees for verified owners
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className={`font-semibold ${trustLevel.color}`}>
-                      Premium Support
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Get priority customer support and dedicated assistance
-                    </p>
+                  <div className="text-center p-4 bg-white rounded-lg border border-green-200">
+                    <Building className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                    <h4 className="font-semibold text-sm">Owner Status</h4>
+                    <p className="text-xs text-gray-600">Verified</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Verification Steps */}
-            <div className="space-y-4">
-              {ownerVerificationSteps.map((step) => {
-                const status = getVerificationStatus(step.id);
-                const StepIcon = step.icon;
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-green-900">You can now:</h4>
+                  <ul className="space-y-2 text-sm text-green-800">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span>List unlimited properties</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span>Get verified owner badge</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span>Access premium owner features</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span>Build trust with students</span>
+                    </li>
+                  </ul>
+                </div>
 
-                return (
-                  <Card key={step.id} className={`transition-all duration-200 ${status === 'verified' ? 'border-green-200 bg-green-50 dark:bg-green-900/10' : ''
-                    }`}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`p-3 rounded-full ${status === 'verified'
-                              ? 'bg-green-100 dark:bg-green-900/20'
-                              : 'bg-gray-100 dark:bg-gray-800'
-                            }`}>
-                            <StepIcon size={24} className={
-                              status === 'verified' ? 'text-green-600' : 'text-gray-600'
-                            } />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-3">
-                              <h3 className="font-semibold text-lg">{step.title}</h3>
-                              {step.required && (
-                                <Badge variant="destructive" className="text-xs">Required</Badge>
-                              )}
-                            </div>
-                            <p className="text-gray-600 dark:text-gray-400 mt-1">
-                              {step.description}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          {getVerificationBadge(status)}
-                          {status !== 'verified' && (
-                            <div className="flex gap-2">
-                              {(step.id === 'aadhaar' || step.id === 'pan') && (
-                                <Button
-                                  onClick={handleAadhaarVerification}
-                                  disabled={verifying.aadhaar}
-                                  variant="outline"
-                                  size="sm"
-                                >
-                                  {verifying.aadhaar ? (
-                                    <Loader2 size={16} className="animate-spin mr-2" />
-                                  ) : (
-                                    <ExternalLink size={16} className="mr-2" />
-                                  )}
-                                  Verify with Aadhaar
-                                </Button>
-                              )}
-
-                              {(['business', 'gst', 'property'].includes(step.id)) && (
-                                <Button
-                                  onClick={handleDigilockerVerification}
-                                  disabled={verifying.digilocker}
-                                  variant="outline"
-                                  size="sm"
-                                >
-                                  {verifying.digilocker ? (
-                                    <Loader2 size={16} className="animate-spin mr-2" />
-                                  ) : (
-                                    <Upload size={16} className="mr-2" />
-                                  )}
-                                  Upload Document
-                                </Button>
-                              )}
-
-                              {(step.id === 'email' || step.id === 'phone') && (
-                                <Button variant="outline" size="sm">
-                                  <RefreshCw size={16} className="mr-2" />
-                                  Resend
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-
-            {/* Verification Requirements */}
-            <Card className="border-amber-200 bg-amber-50 dark:bg-amber-900/10">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
-                  <FileText size={20} />
-                  Document Requirements
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-amber-800 dark:text-amber-300 mb-2">
-                      Required Documents
-                    </h4>
-                    <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-1 list-disc list-inside">
-                      <li>Valid Aadhaar Card (for identity verification)</li>
-                      <li>PAN Card (for tax compliance)</li>
-                      <li>Property ownership documents</li>
-                      <li>Recent utility bills for address proof</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-amber-800 dark:text-amber-300 mb-2">
-                      Optional Business Documents
-                    </h4>
-                    <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-1 list-disc list-inside">
-                      <li>GST registration certificate (if applicable)</li>
-                      <li>Business registration documents</li>
-                      <li>Professional licenses or certifications</li>
-                      <li>Bank account statements (last 3 months)</li>
-                    </ul>
-                  </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => router.push('/owner/profile')}
+                    className="flex-1"
+                  >
+                    Back to Profile
+                  </Button>
+                  <Button
+                    onClick={() => router.push('/owner/dashboard')}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Go to Dashboard
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <ProfileNavigation />
+
+        <div className="mt-8 max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-red-100 rounded-full">
+                <Building className="w-8 h-8 text-red-600" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Property Owner Verification
+            </h1>
+            <Badge variant="destructive" className="mb-4">
+              Required for All Property Owners
+            </Badge>
+            <p className="text-gray-600">
+              Complete identity verification to list properties and build trust with students
+            </p>
+          </div>
+
+          {/* Required Notice */}
+          <Alert className="mb-8 border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              <strong>Verification Required:</strong> All property owners must complete identity verification before listing properties. This helps build trust and ensures the safety of our student community.
+            </AlertDescription>
+          </Alert>
+
+          {/* Progress Steps */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between max-w-md mx-auto">
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+                const isActive = index === currentStep;
+                const isCompleted = isStepCompleted(step.id) || index < currentStep;
+
+                return (
+                  <div key={step.id} className="flex items-center">
+                    <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 ${isCompleted
+                      ? 'bg-green-600 border-green-600 text-white'
+                      : isActive
+                        ? 'bg-red-600 border-red-600 text-white'
+                        : 'bg-gray-200 border-gray-300 text-gray-500'
+                      }`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div className={`w-12 h-0.5 ${isCompleted ? 'bg-green-600' : 'bg-gray-300'
+                        }`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="text-center mt-3">
+              <h3 className="font-semibold">{steps[currentStep]?.title}</h3>
+              <p className="text-sm text-gray-600">Step {currentStep + 1} of {steps.length}</p>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="mb-8">
+            {currentStep === 0 && (
+              <DocumentUpload
+                token={authToken}
+                onSuccess={handleDocumentUploadSuccess}
+                onError={handleError}
+              />
+            )}
+
+            {currentStep === 1 && (
+              <SelfieCapture
+                token={authToken}
+                onSuccess={handleSelfieUploadSuccess}
+                onError={handleError}
+              />
+            )}
+
+            {currentStep === 2 && (
+              <Card className="max-w-2xl mx-auto">
+                <CardHeader className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="p-3 bg-green-100 rounded-full">
+                      <CheckCircle className="w-8 h-8 text-green-600" />
+                    </div>
+                  </div>
+                  <CardTitle>Verification Complete!</CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                  <Alert className="border-green-200 bg-green-50">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      Congratulations! Your identity has been successfully verified. You can now list properties and start building your rental business.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <FileText className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                      <h4 className="font-semibold">Document Verified</h4>
+                      <p className="text-sm text-gray-600">Identity confirmed</p>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <Camera className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                      <h4 className="font-semibold">Selfie Matched</h4>
+                      <p className="text-sm text-gray-600">Face verification passed</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">Next Steps:</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-center gap-2">
+                        <ArrowRight className="w-4 h-4 text-blue-600" />
+                        <span>Create your first property listing</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <ArrowRight className="w-4 h-4 text-blue-600" />
+                        <span>Set up your owner dashboard</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <ArrowRight className="w-4 h-4 text-blue-600" />
+                        <span>Start connecting with students</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <Button
+                    onClick={handleCompleteVerification}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    Complete Verification & Start Listing
+                    <Building className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Navigation */}
+          {currentStep > 0 && !verificationStatus?.user?.isIdentityVerified && (
+            <div className="text-center">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Previous Step
+              </Button>
+            </div>
+          )}
+
+          {/* Required Notice */}
+          <div className="text-center mt-6">
+            <Alert className="max-w-md mx-auto border-amber-200 bg-amber-50">
+              <Info className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 text-sm">
+                Verification cannot be skipped for property owners. This ensures the safety and trust of our student community.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-
-export default OwnerVerificationPage;

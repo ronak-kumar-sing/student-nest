@@ -1,185 +1,148 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import ProfileNavigation from '@/components/profile/ProfileNavigation';
-import VerificationBadge from '@/components/profile/VerificationBadge';
-import { getStudentProfile, initiateAadhaarVerification, initiateDigilockerVerification } from '@/lib/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import {
   Shield,
+  ShieldCheck,
+  User,
+  FileText,
+  Camera,
   CheckCircle,
   AlertCircle,
   Clock,
-  FileText,
-  Upload,
-  RefreshCw,
-  Loader2,
-  ExternalLink,
-  User,
-  CreditCard,
-  GraduationCap,
-  Building
+  ArrowRight,
+  ArrowLeft,
+  Info
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import ProfileNavigation from '@/components/profile/ProfileNavigation';
+import DocumentUpload from '@/components/verification/DocumentUpload';
+import SelfieCapture from '@/components/verification/SelfieCapture';
+import VerificationPrompt from '@/components/verification/VerificationPrompt';
 
-const verificationSteps = [
-  {
-    id: 'email',
-    title: 'Email Verification',
-    description: 'Verify your email address',
-    icon: CheckCircle,
-    required: true
-  },
-  {
-    id: 'phone',
-    title: 'Phone Verification',
-    description: 'Verify your phone number',
-    icon: CheckCircle,
-    required: true
-  },
-  {
-    id: 'aadhaar',
-    title: 'Aadhaar Verification',
-    description: 'Verify your identity with Aadhaar',
-    icon: User,
-    required: false
-  },
-  {
-    id: 'student',
-    title: 'Student ID Verification',
-    description: 'Upload your student ID card',
-    icon: GraduationCap,
-    required: false
-  },
-  {
-    id: 'college',
-    title: 'College Verification',
-    description: 'Verify your college enrollment',
-    icon: Building,
-    required: false
-  }
-];
-
-function StudentVerificationPage() {
-  const [profile, setProfile] = useState(null);
+export default function StudentVerificationPage() {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [verificationData, setVerificationData] = useState({
+    document: null,
+    selfie: null,
+    status: 'pending'
+  });
+  const [verificationStatus, setVerificationStatus] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [verifying, setVerifying] = useState({});
+  const [authToken, setAuthToken] = useState('');
+  const router = useRouter();
+
+  const steps = [
+    { id: 'document', title: 'Document Upload', icon: FileText },
+    { id: 'selfie', title: 'Selfie Verification', icon: Camera },
+    { id: 'review', title: 'Review & Complete', icon: CheckCircle }
+  ];
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/');
+      return;
+    }
+    setAuthToken(token);
+    fetchVerificationStatus(token);
+  }, [router]);
 
-  const fetchProfile = async () => {
-    setLoading(true);
+  const fetchVerificationStatus = async (token) => {
     try {
-      const response = await getStudentProfile();
-      if (response.success) {
-        setProfile(response.data);
+      console.log('Fetching verification status with token:', token ? 'Present' : 'Missing');
+
+      const response = await fetch('/api/verify/requirements', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('Response status:', response.status);
+      const result = await response.json();
+      console.log('Response data:', result);
+
+      if (result.success) {
+        setVerificationStatus(result.data);
+
+        // Set current step based on completion
+        const verification = result.data.verification;
+        if (verification) {
+          const completedSteps = verification.completedSteps || [];
+          const simpleSteps = verification.simpleSteps || {};
+
+          // Use simpleSteps if available, otherwise fall back to completedSteps
+          if (simpleSteps.review === 'completed' || completedSteps.includes('review')) {
+            setCurrentStep(2);
+          } else if (simpleSteps.selfie === 'completed' || completedSteps.includes('selfie')) {
+            setCurrentStep(2);
+          } else if (simpleSteps.document === 'completed' || completedSteps.includes('document')) {
+            setCurrentStep(1);
+          } else {
+            setCurrentStep(0);
+          }
+        } else {
+          setCurrentStep(0);
+        }
+      } else {
+        console.error('API Error:', result.error);
+        toast.error(`Failed to load verification status: ${result.error}`);
+
+        // If unauthorized, redirect to login
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/');
+        }
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Network error fetching verification status:', error);
+      toast.error(`Network error: ${error.message}`);
     } finally {
       setLoading(false);
     }
+  }; const handleDocumentUploadSuccess = (documentData) => {
+    setVerificationData(prev => ({ ...prev, document: documentData }));
+    toast.success('Document uploaded successfully! Proceeding to selfie verification.');
+    setCurrentStep(1);
+    // Refresh status
+    fetchVerificationStatus(authToken);
   };
 
-  const handleAadhaarVerification = async () => {
-    setVerifying({ ...verifying, aadhaar: true });
-    try {
-      const response = await initiateAadhaarVerification();
-      if (response.success) {
-        // Redirect to verification URL or show success message
-        alert('Aadhaar verification initiated. Please complete the process.');
-      }
-    } catch (error) {
-      console.error('Error initiating Aadhaar verification:', error);
-      alert('Failed to initiate Aadhaar verification. Please try again.');
-    } finally {
-      setVerifying({ ...verifying, aadhaar: false });
-    }
+  const handleSelfieUploadSuccess = (selfieData) => {
+    setVerificationData(prev => ({ ...prev, selfie: selfieData }));
+    toast.success('Selfie uploaded successfully! Verification complete.');
+    setCurrentStep(2);
+    // Refresh status
+    fetchVerificationStatus(authToken);
   };
 
-  const handleDigilockerVerification = async () => {
-    setVerifying({ ...verifying, digilocker: true });
-    try {
-      const response = await initiateDigilockerVerification();
-      if (response.success) {
-        // Redirect to DigiLocker or show success message
-        alert('DigiLocker verification initiated. Please complete the process.');
-      }
-    } catch (error) {
-      console.error('Error initiating DigiLocker verification:', error);
-      alert('Failed to initiate DigiLocker verification. Please try again.');
-    } finally {
-      setVerifying({ ...verifying, digilocker: false });
-    }
+  const handleError = (error) => {
+    toast.error(error || 'Verification failed. Please try again.');
   };
 
-  const getVerificationStatus = (verificationType) => {
-    if (!profile) return 'pending';
-
-    switch (verificationType) {
-      case 'email':
-        return profile.emailVerified ? 'verified' : 'pending';
-      case 'phone':
-        return profile.phoneVerified ? 'verified' : 'pending';
-      case 'aadhaar':
-        return profile.aadhaarVerified ? 'verified' : 'pending';
-      case 'student':
-        return profile.studentIdVerified ? 'verified' : 'pending';
-      case 'college':
-        return profile.collegeVerified ? 'verified' : 'pending';
-      default:
-        return 'pending';
-    }
+  const handleCompleteVerification = () => {
+    toast.success('Identity verification completed successfully!');
+    router.push('/student/profile');
   };
 
-  const getVerificationIcon = (status) => {
-    switch (status) {
-      case 'verified':
-        return <CheckCircle size={20} className="text-green-600" />;
-      case 'pending':
-        return <Clock size={20} className="text-yellow-600" />;
-      case 'failed':
-        return <AlertCircle size={20} className="text-red-600" />;
-      default:
-        return <Clock size={20} className="text-gray-400" />;
-    }
-  };
-
-  const getVerificationBadge = (status) => {
-    switch (status) {
-      case 'verified':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Verified</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="border-yellow-300 text-yellow-700">Pending</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
-      default:
-        return <Badge variant="outline">Not Started</Badge>;
-    }
-  };
-
-  const calculateCompletionPercentage = () => {
-    if (!profile) return 0;
-
-    const totalSteps = verificationSteps.length;
-    const completedSteps = verificationSteps.filter(step =>
-      getVerificationStatus(step.id) === 'verified'
-    ).length;
-
-    return Math.round((completedSteps / totalSteps) * 100);
+  const handleSkipVerification = () => {
+    router.push('/dashboard');
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
-            <div className="flex items-center gap-3 text-gray-400">
-              <RefreshCw size={24} className="animate-spin" />
-              <span>Loading verification status...</span>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading verification status...</p>
             </div>
           </div>
         </div>
@@ -187,190 +150,267 @@ function StudentVerificationPage() {
     );
   }
 
-  const completionPercentage = calculateCompletionPercentage();
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Shield size={24} className="text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Account Verification</h1>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Navigation Sidebar */}
-          <div className="lg:col-span-1">
-            <ProfileNavigation userType="student" />
+  // Show verification prompt if user hasn't started or decided to skip
+  if (!verificationStatus?.requirements?.verificationRequired &&
+    !verificationStatus?.user?.identityVerificationSkipped &&
+    !verificationStatus?.verification) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/student/profile')}
+              className="mb-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Profile
+            </Button>
           </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Verification Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Verification Progress</span>
-                  <Badge variant="secondary" className="text-lg px-3 py-1">
-                    {completionPercentage}% Complete
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500"
-                      style={{ width: `${completionPercentage}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>Complete all verifications to increase your profile credibility</span>
-                    <VerificationBadge
-                      emailVerified={profile?.emailVerified}
-                      phoneVerified={profile?.phoneVerified}
-                      idVerified={profile?.aadhaarVerified}
-                    />
+          <div className="flex justify-center">
+            <VerificationPrompt
+              userRole="student"
+              onSkip={handleSkipVerification}
+              onProceed={(path) => router.push(path)}
+              showInDashboard={true}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show completed status
+  if (verificationStatus?.user?.isIdentityVerified) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <ProfileNavigation />
+
+          <div className="mt-8 max-w-2xl mx-auto">
+            <Card className="border-green-200 bg-green-50">
+              <CardHeader className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <ShieldCheck className="w-8 h-8 text-green-600" />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Verification Steps */}
-            <div className="space-y-4">
-              {verificationSteps.map((step) => {
-                const status = getVerificationStatus(step.id);
-                const StepIcon = step.icon;
-
-                return (
-                  <Card key={step.id} className={`transition-all duration-200 ${status === 'verified' ? 'border-green-200 bg-green-50 dark:bg-green-900/10' : ''
-                    }`}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`p-3 rounded-full ${status === 'verified'
-                              ? 'bg-green-100 dark:bg-green-900/20'
-                              : 'bg-gray-100 dark:bg-gray-800'
-                            }`}>
-                            <StepIcon size={24} className={
-                              status === 'verified' ? 'text-green-600' : 'text-gray-600'
-                            } />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-3">
-                              <h3 className="font-semibold text-lg">{step.title}</h3>
-                              {step.required && (
-                                <Badge variant="outline" className="text-xs">Required</Badge>
-                              )}
-                            </div>
-                            <p className="text-gray-600 dark:text-gray-400 mt-1">
-                              {step.description}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          {getVerificationBadge(status)}
-                          {status !== 'verified' && (
-                            <div className="flex gap-2">
-                              {step.id === 'aadhaar' && (
-                                <Button
-                                  onClick={handleAadhaarVerification}
-                                  disabled={verifying.aadhaar}
-                                  variant="outline"
-                                  size="sm"
-                                >
-                                  {verifying.aadhaar ? (
-                                    <Loader2 size={16} className="animate-spin mr-2" />
-                                  ) : (
-                                    <ExternalLink size={16} className="mr-2" />
-                                  )}
-                                  Verify with Aadhaar
-                                </Button>
-                              )}
-
-                              {step.id === 'student' && (
-                                <Button
-                                  onClick={handleDigilockerVerification}
-                                  disabled={verifying.digilocker}
-                                  variant="outline"
-                                  size="sm"
-                                >
-                                  {verifying.digilocker ? (
-                                    <Loader2 size={16} className="animate-spin mr-2" />
-                                  ) : (
-                                    <Upload size={16} className="mr-2" />
-                                  )}
-                                  Upload Document
-                                </Button>
-                              )}
-
-                              {(step.id === 'email' || step.id === 'phone') && (
-                                <Button variant="outline" size="sm">
-                                  <RefreshCw size={16} className="mr-2" />
-                                  Resend
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-
-            {/* Benefits Card */}
-            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/10">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-300">
-                  <Shield size={20} />
-                  Verification Benefits
-                </CardTitle>
+                <CardTitle className="text-green-900">Identity Verified Successfully!</CardTitle>
+                <Badge variant="default" className="bg-green-600 mt-2">
+                  Verified Student
+                </Badge>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-blue-800 dark:text-blue-300">
-                      Increased Trust
-                    </h4>
-                    <p className="text-sm text-blue-700 dark:text-blue-400">
-                      Verified profiles are more likely to be trusted by property owners
-                    </p>
+
+              <CardContent className="space-y-4">
+                <Alert className="border-green-200 bg-green-100">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    Your identity has been verified successfully. You now have access to all platform features.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-white rounded-lg border border-green-200">
+                    <FileText className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                    <h4 className="font-semibold text-sm">Document</h4>
+                    <p className="text-xs text-gray-600">Verified</p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-blue-800 dark:text-blue-300">
-                      Priority Listings
-                    </h4>
-                    <p className="text-sm text-blue-700 dark:text-blue-400">
-                      Get priority access to premium room listings
-                    </p>
+                  <div className="text-center p-4 bg-white rounded-lg border border-green-200">
+                    <Camera className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                    <h4 className="font-semibold text-sm">Selfie</h4>
+                    <p className="text-xs text-gray-600">Verified</p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-blue-800 dark:text-blue-300">
-                      Faster Responses
-                    </h4>
-                    <p className="text-sm text-blue-700 dark:text-blue-400">
-                      Verified users receive faster responses from owners
-                    </p>
+                  <div className="text-center p-4 bg-white rounded-lg border border-green-200">
+                    <Shield className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                    <h4 className="font-semibold text-sm">Status</h4>
+                    <p className="text-xs text-gray-600">Active</p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-blue-800 dark:text-blue-300">
-                      Security Badge
-                    </h4>
-                    <p className="text-sm text-blue-700 dark:text-blue-400">
-                      Display verification badges on your profile
-                    </p>
-                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => router.push('/student/profile')}
+                    className="flex-1"
+                  >
+                    Back to Profile
+                  </Button>
+                  <Button
+                    onClick={() => router.push('/dashboard')}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Go to Dashboard
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <ProfileNavigation />
+
+        <div className="mt-8 max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Student Identity Verification
+            </h1>
+            <p className="text-gray-600">
+              Secure your account and access premium features
+            </p>
+          </div>
+
+          {/* Progress Steps */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between max-w-md mx-auto">
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+                const isActive = index === currentStep;
+                const isCompleted = verificationStatus?.verification?.completedSteps?.includes(step.id) || index < currentStep;
+
+                return (
+                  <div key={step.id} className="flex items-center">
+                    <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 ${isCompleted
+                      ? 'bg-green-600 border-green-600 text-white'
+                      : isActive
+                        ? 'bg-blue-600 border-blue-600 text-white'
+                        : 'bg-gray-200 border-gray-300 text-gray-500'
+                      }`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div className={`w-12 h-0.5 ${isCompleted ? 'bg-green-600' : 'bg-gray-300'
+                        }`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="text-center mt-3">
+              <h3 className="font-semibold">{steps[currentStep]?.title}</h3>
+              <p className="text-sm text-gray-600">Step {currentStep + 1} of {steps.length}</p>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="mb-8">
+            {currentStep === 0 && (
+              <DocumentUpload
+                token={authToken}
+                onSuccess={handleDocumentUploadSuccess}
+                onError={handleError}
+              />
+            )}
+
+            {currentStep === 1 && (
+              <SelfieCapture
+                token={authToken}
+                onSuccess={handleSelfieUploadSuccess}
+                onError={handleError}
+              />
+            )}
+
+            {currentStep === 2 && (
+              <Card className="max-w-2xl mx-auto">
+                <CardHeader className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="p-3 bg-green-100 rounded-full">
+                      <CheckCircle className="w-8 h-8 text-green-600" />
+                    </div>
+                  </div>
+                  <CardTitle>Verification Complete!</CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                  <Alert className="border-green-200 bg-green-50">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      Your identity has been successfully verified. You now have access to all student features.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <FileText className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                      <h4 className="font-semibold">Document Verified</h4>
+                      <p className="text-sm text-gray-600">Identity confirmed</p>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <Camera className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                      <h4 className="font-semibold">Selfie Matched</h4>
+                      <p className="text-sm text-gray-600">Face verification passed</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">You can now:</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Access verified-only properties</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Get priority in room applications</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Use advanced search filters</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Receive premium support</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <Button
+                    onClick={handleCompleteVerification}
+                    className="w-full"
+                  >
+                    Complete Verification
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Navigation */}
+          {currentStep > 0 && !verificationStatus?.user?.isIdentityVerified && (
+            <div className="text-center">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Previous Step
+              </Button>
+            </div>
+          )}
+
+          {/* Skip Option for Students */}
+          {!verificationStatus?.requirements?.verificationRequired && currentStep === 0 && (
+            <div className="text-center mt-6">
+              <Button
+                variant="ghost"
+                onClick={() => router.push('/student/profile')}
+                className="text-gray-600"
+              >
+                Skip Verification (Can enable later)
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
-
-export default StudentVerificationPage;

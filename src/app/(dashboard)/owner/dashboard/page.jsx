@@ -20,6 +20,8 @@ import OwnerStatsCards from "@/components/dashboard/OwnerStatsCards";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import OwnerQuickActions from "@/components/dashboard/OwnerQuickActions";
 import AnalyticsOverview from "@/components/dashboard/AnalyticsOverview";
+import VerificationWidget from "@/components/verification/VerificationWidget";
+import { useVerificationStatus } from "@/components/verification/VerificationGuard";
 
 export default function OwnerDashboardPage() {
   const [user, setUser] = useState(null);
@@ -29,6 +31,7 @@ export default function OwnerDashboardPage() {
     activities: [],
     analytics: {}
   });
+  const { verificationStatus, isVerified } = useVerificationStatus();
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -120,6 +123,11 @@ export default function OwnerDashboardPage() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Verification Widget - Only show if not verified */}
+      {!isVerified && (
+        <VerificationWidget userRole="owner" compact={false} />
+      )}
+
       {/* Dashboard Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

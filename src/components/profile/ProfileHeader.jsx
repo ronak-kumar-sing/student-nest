@@ -213,7 +213,7 @@ const ProfileHeader = ({
             >
               <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
                 <AvatarImage
-                  src={user.avatar}
+                  src={user.profilePhoto || user.avatar}
                   alt={getUserDisplayName()}
                 />
                 <AvatarFallback className="text-lg font-semibold bg-gradient-to-br from-blue-500 to-purple-600 text-white">

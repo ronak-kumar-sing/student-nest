@@ -12,7 +12,9 @@
     "db:reset": "node -r dotenv/config scripts/seed.js dotenv_config_path=.env.local",
     "test:forgot-password": "node -r dotenv/config scripts/test-forgot-password.js dotenv_config_path=.env.local",
     "test:services": "node -r dotenv/config scripts/test-services.js dotenv_config_path=.env.local",
-    "test:e2e": "node -r dotenv/config scripts/test-e2e-services.js dotenv_config_path=.env.local"
+    "test:e2e": "node -r dotenv/config scripts/test-e2e-services.js dotenv_config_path=.env.local",
+    "test:cloudinary": "node scripts/test-cloudinary-integration.js",
+    "setup:cloudinary": "./scripts/setup-cloudinary.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -20,6 +22,7 @@
     "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-radio-group": "^1.3.8",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-select": "^2.2.6",
@@ -35,6 +38,7 @@
     "@types/nodemailer": "^7.0.1",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.2",
@@ -45,9 +49,11 @@
     "lenis": "^1.3.11",
     "lucide-react": "^0.542.0",
     "mongoose": "^8.18.1",
+    "multer": "^2.0.2",
     "next": "15.5.2",
     "next-themes": "^0.4.6",
     "node-fetch": "^3.3.2",
+    "node-tesseract-ocr": "^2.2.1",
     "nodemailer": "^7.0.6",
     "rate-limiter-flexible": "^7.3.1",
     "react": "19.1.0",
@@ -55,6 +61,7 @@
     "react-hook-form": "^7.62.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
+    "tesseract.js": "^6.0.1",
     "twilio": "^5.10.0",
     "zod": "^4.1.5"
   },

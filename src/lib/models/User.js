@@ -45,6 +45,10 @@ const userSchema = new mongoose.Schema({
     minlength: 2,
     maxlength: 100
   },
+  profilePhoto: {
+    type: String,
+    default: null
+  },
   role: {
     type: String,
     enum: ['student', 'owner', 'Student', 'Owner'],
@@ -55,6 +59,22 @@ const userSchema = new mongoose.Schema({
     default: false
   },
   isPhoneVerified: {
+    type: Boolean,
+    default: false
+  },
+  // Identity verification status
+  isIdentityVerified: {
+    type: Boolean,
+    default: false
+  },
+  identityVerificationRequired: {
+    type: Boolean,
+    default: function() {
+      // Owners always require verification, students can choose
+      return this.role === 'owner' || this.role === 'Owner';
+    }
+  },
+  identityVerificationSkipped: {
     type: Boolean,
     default: false
   },

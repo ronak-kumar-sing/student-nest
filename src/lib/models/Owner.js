@@ -4,10 +4,6 @@ import User from './User.js';
 // Owner-specific schema extending User
 const ownerSchema = new mongoose.Schema({
   // Profile fields
-  avatar: {
-    type: String, // URL to avatar image
-    default: null
-  },
   city: {
     type: String,
     trim: true
@@ -149,13 +145,12 @@ const ownerSchema = new mongoose.Schema({
 // Calculate profile completion before save
 ownerSchema.pre('save', function(next) {
   let completeness = 0;
-  const totalFields = 14;
+  const totalFields = 13;
 
   // Basic fields
   if (this.fullName) completeness++;
   if (this.email) completeness++;
   if (this.phone) completeness++;
-  if (this.avatar) completeness++;
   if (this.city) completeness++;
   if (this.state) completeness++;
 
