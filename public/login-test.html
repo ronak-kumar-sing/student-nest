@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #ffffff;
+    }
+
+    .form-group {
+      margin: 15px 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #ffffff;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #2a2a2a;
+      color: #ffffff;
+    }
+
+    button {
+      background: #007bff;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+
+    .result {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 4px;
+      background: #2a2a2a;
+      border: 1px solid #444;
+    }
+
+    .success {
+      border-color: #28a745;
+      background: #1e3a1e;
+    }
+
+    .error {
+      border-color: #dc3545;
+      background: #3a1e1e;
+    }
+
+    pre {
+      background: #1a1a1a;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🔐 Login API Test</h1>
+
+  <form id="loginForm">
+    <div class="form-group">
+      <label for="account">Select Test Account:</label>
+      <select id="account" name="account">
+        <option value="demo">Demo Owner (demo@owner.test)</option>
+        <option value="admin">Admin (admin@studentnest.com)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" value="demo@owner.test" required>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" value="DemoOwner123!" required>
+    </div>
+
+    <div class="form-group">
+      <label for="role">Role (optional):</label>
+      <input type="text" id="role" name="role" placeholder="owner, student, admin">
+    </div>
+
+    <button type="submit" id="loginBtn">🚀 Test Login</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    // Pre-fill form based on account selection
+    document.getElementById('account').addEventListener('change', function () {
+      const account = this.value;
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const roleInput = document.getElementById('role');
+
+      if (account === 'demo') {
+        emailInput.value = 'demo@owner.test';
+        passwordInput.value = 'DemoOwner123!';
+        roleInput.value = 'owner';
+      } else if (account === 'admin') {
+        emailInput.value = 'admin@studentnest.com';
+        passwordInput.value = 'Admin@123';
+        roleInput.value = 'admin';
+      }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const btn = document.getElementById('loginBtn');
+      const result = document.getElementById('result');
+      const formData = new FormData(this);
+
+      const loginData = {
+        identifier: formData.get('email'),
+        password: formData.get('password')
+      };
+
+      if (formData.get('role')) {
+        loginData.role = formData.get('role');
+      }
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Logging in...';
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(loginData)
+        });
+
+        const data = await response.json();
+
+        result.className = 'result ' + (data.success ? 'success' : 'error');
+        result.innerHTML = `
+                    <h3>${data.success ? '✅ Login Success!' : '❌ Login Failed'}</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Message:</strong> ${data.message}</p>
+                    <details>
+                        <summary>Full Response</summary>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </details>
+                `;
+
+        if (data.success && data.data?.user) {
+          const user = data.data.user;
+          result.innerHTML += `
+                        <div style="margin-top: 15px;">
+                            <h4>👤 User Details:</h4>
+                            <p><strong>Name:</strong> ${user.fullName}</p>
+                            <p><strong>Email:</strong> ${user.email}</p>
+                            <p><strong>Role:</strong> ${user.role}</p>
+                            <p><strong>Verified:</strong> ${user.isIdentityVerified ? '✅' : '❌'}</p>
+                        </div>
+                    `;
+        }
+
+      } catch (error) {
+        result.className = 'result error';
+        result.innerHTML = `
+                    <h3>❌ Network Error</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 Test Login';
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -53,6 +53,17 @@ export default function StudentVerificationPage() {
     fetchVerificationStatus(token);
   }, [router]);
 
+  // Auto-dismiss verification prompt after 10 seconds
+  useEffect(() => {
+    if (!verificationStatus?.requirements?.verificationRequired && currentStep === 0) {
+      const timer = setTimeout(() => {
+        router.push('/student/profile');
+      }, 10000); // 10 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [verificationStatus, currentStep, router]);
+
   const fetchVerificationStatus = async (token) => {
     try {
       console.log('Fetching verification status with token:', token ? 'Present' : 'Missing');
@@ -252,19 +263,37 @@ export default function StudentVerificationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="container mx-auto px-4 py-8">
         <ProfileNavigation />
 
         <div className="mt-8 max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               Student Identity Verification
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               Secure your account and access premium features
             </p>
+
+            {/* Optional Badge */}
+            <div className="mt-4 flex justify-center">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
+                <Shield className="w-4 h-4 mr-1" />
+                Optional Verification
+              </span>
+            </div>
+
+            {/* Auto-dismiss notice */}
+            {!verificationStatus?.requirements?.verificationRequired && currentStep === 0 && (
+              <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  <Info className="w-4 h-4 inline mr-1" />
+                  This page will automatically return to your profile in 10 seconds
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Progress Steps */}
@@ -277,16 +306,16 @@ export default function StudentVerificationPage() {
 
                 return (
                   <div key={step.id} className="flex items-center">
-                    <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 ${isCompleted
-                      ? 'bg-green-600 border-green-600 text-white'
+                    <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${isCompleted
+                      ? 'bg-green-600 dark:bg-green-500 border-green-600 dark:border-green-500 text-white shadow-lg shadow-green-500/25'
                       : isActive
-                        ? 'bg-blue-600 border-blue-600 text-white'
-                        : 'bg-gray-200 border-gray-300 text-gray-500'
+                        ? 'bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500 text-white shadow-lg shadow-blue-500/25'
+                        : 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
                       }`}>
                       <Icon className="w-5 h-5" />
                     </div>
                     {index < steps.length - 1 && (
-                      <div className={`w-12 h-0.5 ${isCompleted ? 'bg-green-600' : 'bg-gray-300'
+                      <div className={`w-12 h-0.5 transition-colors duration-300 ${isCompleted ? 'bg-green-600 dark:bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
                         }`} />
                     )}
                   </div>
@@ -295,8 +324,8 @@ export default function StudentVerificationPage() {
             </div>
 
             <div className="text-center mt-3">
-              <h3 className="font-semibold">{steps[currentStep]?.title}</h3>
-              <p className="text-sm text-gray-600">Step {currentStep + 1} of {steps.length}</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{steps[currentStep]?.title}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Step {currentStep + 1} of {steps.length}</p>
             </div>
           </div>
 
@@ -319,34 +348,34 @@ export default function StudentVerificationPage() {
             )}
 
             {currentStep === 2 && (
-              <Card className="max-w-2xl mx-auto">
+              <Card className="max-w-2xl mx-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
                 <CardHeader className="text-center">
                   <div className="flex justify-center mb-4">
-                    <div className="p-3 bg-green-100 rounded-full">
-                      <CheckCircle className="w-8 h-8 text-green-600" />
+                    <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                      <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
                     </div>
                   </div>
-                  <CardTitle>Verification Complete!</CardTitle>
+                  <CardTitle className="text-gray-900 dark:text-gray-100">Verification Complete!</CardTitle>
                 </CardHeader>
 
                 <CardContent className="space-y-6">
-                  <Alert className="border-green-200 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
+                  <Alert className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <AlertDescription className="text-green-800 dark:text-green-200">
                       Your identity has been successfully verified. You now have access to all student features.
                     </AlertDescription>
                   </Alert>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <FileText className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                      <h4 className="font-semibold">Document Verified</h4>
-                      <p className="text-sm text-gray-600">Identity confirmed</p>
+                    <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600">
+                      <FileText className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">Document Verified</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Identity confirmed</p>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <Camera className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                      <h4 className="font-semibold">Selfie Matched</h4>
-                      <p className="text-sm text-gray-600">Face verification passed</p>
+                    <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600">
+                      <Camera className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">Selfie Matched</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Face verification passed</p>
                     </div>
                   </div>
 
@@ -399,14 +428,27 @@ export default function StudentVerificationPage() {
 
           {/* Skip Option for Students */}
           {!verificationStatus?.requirements?.verificationRequired && currentStep === 0 && (
-            <div className="text-center mt-6">
-              <Button
-                variant="ghost"
-                onClick={() => router.push('/student/profile')}
-                className="text-gray-600"
-              >
-                Skip Verification (Can enable later)
-              </Button>
+            <div className="text-center mt-6 space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  🎓 Verification is Optional for Students
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-200 mb-3">
+                  You can continue using StudentNest without verification. Complete it anytime to unlock premium features.
+                </p>
+                <div className="space-y-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => router.push('/student/profile')}
+                    className="text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 w-full"
+                  >
+                    Continue to Profile
+                  </Button>
+                  <p className="text-xs text-blue-500 dark:text-blue-400">
+                    Returning to profile automatically in 10 seconds...
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

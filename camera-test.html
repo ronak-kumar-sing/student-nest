@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    video {
+      border: 2px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .camera-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .start {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .stop {
+      background: #f44336;
+      color: white;
+    }
+
+    .capture {
+      background: #2196F3;
+      color: white;
+    }
+
+    canvas {
+      display: none;
+    }
+
+    .result {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Camera Test</h1>
+  <div class="camera-container">
+    <video id="video" width="640" height="480" autoplay muted></video>
+    <canvas id="canvas"></canvas>
+    <div>
+      <button class="start" onclick="startCamera()">Start Camera</button>
+      <button class="stop" onclick="stopCamera()">Stop Camera</button>
+      <button class="capture" onclick="capturePhoto()">Capture Photo</button>
+    </div>
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    let stream = null;
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const result = document.getElementById('result');
+
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          }
+        });
+
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+        };
+
+        result.innerHTML = '<p style="color: green;">Camera started successfully!</p>';
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        result.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+      }
+    }
+
+    function stopCamera() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        stream = null;
+        result.innerHTML = '<p style="color: orange;">Camera stopped.</p>';
+      }
+    }
+
+    function capturePhoto() {
+      if (!stream) {
+        result.innerHTML = '<p style="color: red;">Please start camera first!</p>';
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          result.innerHTML = `
+                        <p style="color: green;">Photo captured successfully!</p>
+                        <img src="${url}" width="200" style="border: 1px solid #ddd; border-radius: 4px;">
+                    `;
+        }
+      }, 'image/jpeg', 0.9);
+    }
+  </script>
+</body>
+
+</html>

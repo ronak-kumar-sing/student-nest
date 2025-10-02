@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,29 +16,180 @@ import {
 } from 'lucide-react';
 
 export default function SelfieCapture({ token, onSuccess, onError }) {
+  // 🧪 MOCK MODE CONFIGURATION
+  // Check URL params for mock mode or default to true for testing
+  const [MOCK_MODE, setMockMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const mockParam = urlParams.get('mock');
+      if (mockParam !== null) {
+        return mockParam !== 'false';
+      }
+    }
+    return true; // Default to mock mode for testing
+  });
+
   const [loading, setLoading] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
   const [uploadResult, setUploadResult] = useState(null);
   const [useCamera, setUseCamera] = useState(false);
   const [stream, setStream] = useState(null);
+  const [documentCheckLoading, setDocumentCheckLoading] = useState(true);
+  const [canTakeSelfie, setCanTakeSelfie] = useState(false);
+  const [documentStatus, setDocumentStatus] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const startCamera = async () => {
+  // Check document status when component mounts
+  useEffect(() => {
+    checkDocumentStatus();
+  }, [token]);
+
+  // Cleanup camera when component unmounts
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
+  const checkDocumentStatus = async () => {
+    if (!token) return;
+
+    setDocumentCheckLoading(true);
+
+    if (MOCK_MODE) {
+      // MOCK: Always allow selfie capture for testing
+      console.log('🧪 MOCK MODE: Bypassing document check');
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Mock successful document status
+      const mockDocumentStatus = {
+        hasVerificationRecord: true,
+        documentsCount: 1,
+        documents: [
+          {
+            type: 'aadhaar',
+            verified: true,
+            hasFileUrl: true,
+            uploadedAt: new Date().toISOString()
+          }
+        ],
+        suitableDocumentsCount: 1,
+        canTakeSelfie: true,
+        message: 'Ready for selfie capture (Mock Mode)',
+        verification: {
+          status: 'pending',
+          hasSelife: false,
+          scores: { faceMatchScore: 0 }
+        }
+      };
+
+      setDocumentStatus(mockDocumentStatus);
+      setCanTakeSelfie(true);
+      setDocumentCheckLoading(false);
+
+      toast.success('🧪 Mock Mode: Ready for selfie capture');
+      return;
+    }
+
+    // Real document status check
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: 640, height: 480 }
+      const response = await fetch('/api/verify/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
-      setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+      const result = await response.json();
+
+      if (result.success) {
+        setDocumentStatus(result.data);
+        setCanTakeSelfie(result.data.canTakeSelfie);
+
+        if (!result.data.canTakeSelfie) {
+          toast.info(result.data.message || 'Please upload a document first');
+        }
+      } else {
+        toast.error('Failed to check document status');
       }
+    } catch (error) {
+      console.error('Error checking document status:', error);
+      toast.error('Failed to check document status');
+    } finally {
+      setDocumentCheckLoading(false);
+    }
+  }; const startCamera = async () => {
+    // Check if documents are available before starting camera
+    if (!canTakeSelfie) {
+      toast.error('Please upload a valid ID document first');
+      return;
+    }
+
+    try {
+      // Stop any existing stream first
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      });
+
+      console.log('Media stream obtained:', mediaStream);
+      setStream(mediaStream);
       setUseCamera(true);
+
+      // Wait for next tick to ensure video element is rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log('Setting video source...');
+          videoRef.current.srcObject = mediaStream;
+
+          videoRef.current.onloadedmetadata = () => {
+            console.log('Video metadata loaded, attempting to play...');
+            videoRef.current.play()
+              .then(() => {
+                console.log('Video playing successfully');
+                toast.success('Camera started successfully!');
+              })
+              .catch((playError) => {
+                console.error('Error playing video:', playError);
+                toast.error('Unable to display camera feed');
+              });
+          };
+
+          videoRef.current.onerror = (error) => {
+            console.error('Video error:', error);
+            toast.error('Video display error');
+          };
+        } else {
+          console.error('Video ref not available');
+        }
+      }, 100);
+
     } catch (error) {
       console.error('Error accessing camera:', error);
-      toast.error('Unable to access camera. Please use file upload instead.');
+      let errorMessage = 'Unable to access camera. ';
+
+      if (error.name === 'NotAllowedError') {
+        errorMessage += 'Please allow camera access and try again.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage += 'No camera found on this device.';
+      } else {
+        errorMessage += 'Please use file upload instead.';
+      }
+
+      toast.error(errorMessage);
+      setUseCamera(false);
     }
   };
 
@@ -51,27 +202,62 @@ export default function SelfieCapture({ token, onSuccess, onError }) {
   };
 
   const capturePhoto = useCallback(() => {
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
+    console.log('Capture photo called');
 
+    if (!videoRef.current || !canvasRef.current) {
+      console.error('Video or canvas ref not available');
+      toast.error('Camera not ready. Please try again.');
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+
+    // Check if video is ready
+    if (video.readyState !== 4) {
+      console.error('Video not ready, readyState:', video.readyState);
+      toast.error('Video not ready. Please wait a moment and try again.');
+      return;
+    }
+
+    console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.error('Video dimensions are zero');
+      toast.error('Camera feed not available. Please restart camera.');
+      return;
+    }
+
+    try {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
+
+      // Mirror the image back (since we mirrored the video display)
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+      ctx.restore();
 
       canvas.toBlob((blob) => {
         if (blob) {
+          console.log('Photo captured successfully, blob size:', blob.size);
           const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
           const imageUrl = URL.createObjectURL(blob);
           setCapturedImage({ file, url: imageUrl });
           stopCamera();
           toast.success('Selfie captured successfully!');
+        } else {
+          console.error('Failed to create blob');
+          toast.error('Failed to capture photo. Please try again.');
         }
       }, 'image/jpeg', 0.9);
+    } catch (error) {
+      console.error('Error capturing photo:', error);
+      toast.error('Failed to capture photo. Please try again.');
     }
-  }, [stream]);
+  }, []);
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
@@ -105,13 +291,22 @@ export default function SelfieCapture({ token, onSuccess, onError }) {
       return;
     }
 
+    if (!canTakeSelfie) {
+      toast.error('Please upload a valid ID document first');
+      await checkDocumentStatus(); // Refresh status
+      return;
+    }
+
     setLoading(true);
 
     try {
       const formData = new FormData();
       formData.append('selfie', capturedImage.file);
 
-      const response = await fetch('/api/verify/upload-selfie', {
+      const apiEndpoint = MOCK_MODE ? '/api/verify/upload-selfie-mock' : '/api/verify/upload-selfie';
+      console.log(`🧪 Using ${MOCK_MODE ? 'MOCK' : 'REAL'} verification API:`, apiEndpoint);
+
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -124,10 +319,22 @@ export default function SelfieCapture({ token, onSuccess, onError }) {
       if (result.success) {
         setUploadResult(result.data);
         onSuccess(result.data);
-        toast.success('Selfie verification completed!');
+        const successMessage = MOCK_MODE
+          ? '🧪 Mock verification completed successfully!'
+          : 'Selfie verification completed!';
+        toast.success(successMessage);
       } else {
+        console.error('Selfie upload error:', result.error);
         onError(result.error);
-        toast.error(result.error);
+
+        // Show more helpful error messages
+        if (result.error.includes('No verified document')) {
+          toast.error('Please complete document upload first, then try taking a selfie again.');
+        } else if (result.error.includes('upload a document first')) {
+          toast.error('Please upload your ID document before taking a selfie.');
+        } else {
+          toast.error(result.error);
+        }
       }
     } catch (error) {
       onError('Network error during selfie upload');
@@ -145,6 +352,42 @@ export default function SelfieCapture({ token, onSuccess, onError }) {
     }
   };
 
+  const debugCamera = () => {
+    console.log('=== CAMERA DEBUG INFO ===');
+    console.log('Stream:', stream);
+    console.log('Video ref:', videoRef.current);
+    console.log('Canvas ref:', canvasRef.current);
+    console.log('Use camera:', useCamera);
+
+    if (videoRef.current) {
+      const video = videoRef.current;
+      console.log('Video ready state:', video.readyState);
+      console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+      console.log('Video paused:', video.paused);
+      console.log('Video ended:', video.ended);
+      console.log('Video src object:', video.srcObject);
+    }
+
+    toast.info('Check browser console for debug info');
+  };
+
+  const debugVerification = async () => {
+    try {
+      const response = await fetch('/api/verify/debug', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      console.log('=== VERIFICATION DEBUG INFO ===');
+      console.log(result.debug);
+      toast.info('Check browser console for verification debug info');
+    } catch (error) {
+      console.error('Debug error:', error);
+      toast.error('Failed to get debug info');
+    }
+  };
+
   const openFileDialog = () => {
     fileInputRef.current?.click();
   };
@@ -155,8 +398,8 @@ export default function SelfieCapture({ token, onSuccess, onError }) {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className={`p-3 rounded-full ${uploadResult.selfie.faceMatching.matched
-                ? 'bg-green-100'
-                : 'bg-amber-100'
+              ? 'bg-green-100'
+              : 'bg-amber-100'
               }`}>
               {uploadResult.selfie.faceMatching.matched ? (
                 <CheckCircle className="w-8 h-8 text-green-600" />
@@ -274,21 +517,105 @@ export default function SelfieCapture({ token, onSuccess, onError }) {
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <div className="p-3 bg-blue-100 rounded-full">
-            <Camera className="w-8 h-8 text-blue-600" />
+          <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+            <Camera className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
         </div>
-        <CardTitle>Take a Selfie</CardTitle>
-        <p className="text-gray-600 mt-2">
+        <CardTitle className="text-gray-900 dark:text-gray-100">Take a Selfie</CardTitle>
+        <p className="text-gray-600 dark:text-gray-300 mt-2">
           Take a live selfie for face matching with your uploaded document
         </p>
+
+        {/* Mock Mode Indicator & Toggle */}
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">Verification Mode:</span>
+              <Badge variant={MOCK_MODE ? "secondary" : "default"}>
+                {MOCK_MODE ? "🧪 Mock" : "🔒 Real"}
+              </Badge>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setMockMode(!MOCK_MODE);
+                checkDocumentStatus();
+              }}
+            >
+              Switch to {MOCK_MODE ? "Real" : "Mock"}
+            </Button>
+          </div>
+
+          {MOCK_MODE && (
+            <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+              <p className="text-sm text-orange-800 dark:text-orange-200">
+                🧪 <strong>Mock Mode Active:</strong> Face verification is bypassed for testing. All selfies will be automatically verified as successful.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Prerequisite Information */}
+        {!MOCK_MODE && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              📋 <strong>Prerequisite:</strong> Make sure you have uploaded a valid ID document (Aadhaar, PAN, Passport, Driving License, or Voter ID) in the previous step before taking your selfie.
+            </p>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {capturedImage ? (
+        {documentCheckLoading ? (
+          /* Loading document status */
+          <div className="text-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
+            <p className="text-gray-600 dark:text-gray-300">Checking document status...</p>
+          </div>
+        ) : !canTakeSelfie ? (
+          /* Show document requirement message */
+          <div className="text-center py-8 space-y-4">
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <AlertCircle className="w-12 h-12 text-amber-600 dark:text-amber-400 mx-auto mb-4" />
+              <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">Document Upload Required</h3>
+              <p className="text-amber-800 dark:text-amber-200 text-sm mb-4">
+                You need to upload a valid ID document before taking a selfie for face matching.
+              </p>
+              {documentStatus && (
+                <div className="text-xs text-amber-700 dark:text-amber-300 mb-4">
+                  <p>Documents found: {documentStatus.documentsCount}</p>
+                  <p>Suitable for face matching: {documentStatus.suitableDocumentsCount}</p>
+                </div>
+              )}
+              <Button
+                onClick={() => window.location.href = '#document'}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                Go Back to Document Upload
+              </Button>
+            </div>
+            <div className="flex gap-2 justify-center">
+              <Button
+                onClick={checkDocumentStatus}
+                variant="outline"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Status
+              </Button>
+              <Button
+                onClick={debugVerification}
+                variant="ghost"
+                size="sm"
+              >
+                Debug Info
+              </Button>
+            </div>
+          </div>
+        ) : capturedImage ? (
           /* Show captured/selected image */
           <div className="text-center space-y-4">
             <img
@@ -311,14 +638,44 @@ export default function SelfieCapture({ token, onSuccess, onError }) {
           /* Camera view */
           <div className="text-center space-y-4">
             <div className="relative inline-block">
+              {!stream && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-lg z-10">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                  <span className="ml-2 text-sm">Starting camera...</span>
+                </div>
+              )}
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                className="w-80 h-60 object-cover rounded-lg border bg-gray-100"
+                width="640"
+                height="480"
+                style={{
+                  transform: 'scaleX(-1)',
+                  maxWidth: '100%',
+                  height: 'auto'
+                }}
+                className="w-80 h-60 bg-gray-100 dark:bg-gray-800 rounded-lg border object-cover"
+                onLoadedData={() => {
+                  console.log('Video data loaded');
+                  toast.success('Camera feed ready!');
+                }}
+                onCanPlay={() => console.log('Video can play')}
+                onPlaying={() => console.log('Video is playing')}
+                onError={(e) => {
+                  console.error('Video error:', e);
+                  toast.error('Video display error');
+                }}
               />
               <div className="absolute inset-0 border-4 border-blue-500 rounded-lg pointer-events-none opacity-50"></div>
+
+              {/* Camera status indicator */}
+              {stream && (
+                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs">
+                  ● Live
+                </div>
+              )}
             </div>
             <canvas ref={canvasRef} className="hidden" />
 
@@ -330,6 +687,13 @@ export default function SelfieCapture({ token, onSuccess, onError }) {
               <Button onClick={stopCamera} variant="outline">
                 <X className="w-4 h-4 mr-2" />
                 Cancel
+              </Button>
+            </div>
+
+            {/* Debug button - remove in production */}
+            <div className="text-center">
+              <Button onClick={debugCamera} variant="ghost" size="sm" className="text-xs">
+                Debug Camera
               </Button>
             </div>
           </div>
@@ -369,9 +733,9 @@ export default function SelfieCapture({ token, onSuccess, onError }) {
         )}
 
         {/* Guidelines */}
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Selfie Guidelines</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+          <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Selfie Guidelines</h4>
+          <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
             <li>• Look directly at the camera</li>
             <li>• Ensure your face is well-lit and clearly visible</li>
             <li>• Remove sunglasses, hats, or face coverings</li>

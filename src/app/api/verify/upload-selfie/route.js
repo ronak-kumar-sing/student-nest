@@ -94,6 +94,14 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
+    // Debug: Log available documents
+    console.log('Available documents for face matching:', verification.documents.map(doc => ({
+      type: doc.type,
+      verified: doc.verified,
+      hasFileUrl: !!doc.fileUrl,
+      uploadedAt: doc.uploadedAt
+    })));
+
     try {
       // Convert file to buffer for upload
       const bytes = await file.arrayBuffer();
@@ -141,17 +149,28 @@ export async function POST(request) {
         }, { status: 400 });
       }
 
-      // Find the most recent verified document with a face
+      // Find the most recent document with a face (relaxed verification requirement)
       const documentWithFace = verification.documents
-        .filter(doc => doc.verified && ['aadhaar', 'driving_license', 'passport'].includes(doc.type))
+        .filter(doc => {
+          // Accept any document that has been uploaded (not necessarily fully verified)
+          const hasValidType = ['aadhaar', 'driving_license', 'passport', 'pan', 'voter_id'].includes(doc.type);
+          const hasUrl = doc.fileUrl && doc.fileUrl.trim() !== '';
+          return hasValidType && hasUrl;
+        })
         .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
 
       if (!documentWithFace) {
         return NextResponse.json({
           success: false,
-          error: 'No verified document with photo found for face matching'
+          error: 'Please upload a valid document (Aadhaar, Passport, Driving License, PAN, or Voter ID) first before taking a selfie'
         }, { status: 400 });
       }
+
+      console.log('Using document for face matching:', {
+        type: documentWithFace.type,
+        verified: documentWithFace.verified,
+        hasFileUrl: !!documentWithFace.fileUrl
+      });
 
       // Perform face matching
       console.log('Performing face matching...');

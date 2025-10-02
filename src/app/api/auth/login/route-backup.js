@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db/connection';
 import User from '@/lib/models/User';
-import Student from '@/lib/models/Student';
-import Owner from '@/lib/models/Owner';
 import { loginSchema, normalizeEmail, sanitizePhone } from '@/lib/validation/authSchemas';
 import { generateTokens } from '@/lib/utils/jwt';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
@@ -59,53 +57,29 @@ export async function POST(request) {
       query.phone = sanitizePhone(identifier);
     }
 
-    console.log('Login attempt for:', query, 'Role:', role);
-
-    let user = null;
-
-    // Search strategy: Check multiple models to ensure we find the user
+    // Add role filter if provided
     if (role) {
-      // If role is specified, search in appropriate model first
+      // Search for both lowercase and capitalized versions
       const roleVariants = [role, role.charAt(0).toUpperCase() + role.slice(1)];
-
-      if (roleVariants.includes('student') || roleVariants.includes('Student')) {
-        user = await Student.findOne(query);
-        console.log('Student search result:', user ? 'Found' : 'Not found');
-      } else if (roleVariants.includes('owner') || roleVariants.includes('Owner')) {
-        user = await Owner.findOne(query);
-        console.log('Owner search result:', user ? 'Found' : 'Not found');
-      }
+      query.role = { $in: roleVariants };
     }
 
-    // If not found with role-specific search or no role specified, search all models
-    if (!user) {
-      console.log('Fallback: Searching all user models...');
+    console.log('Login query:', JSON.stringify(query));
+    console.log('Looking for user with role:', role);
 
-      // Try User model first (unified approach)
-      user = await User.findOne(query);
-      if (user) {
-        console.log('Found in User model:', user.role);
-      }
+    // Find user
+    const user = await User.findOne(query);
 
-      // If not in User model, try Student model
-      if (!user) {
-        user = await Student.findOne(query);
-        if (user) {
-          console.log('Found in Student model');
-        }
-      }
-
-      // If not in Student model, try Owner model
-      if (!user) {
-        user = await Owner.findOne(query);
-        if (user) {
-          console.log('Found in Owner model');
-        }
-      }
-    }
+    console.log('Found user:', user ? {
+      id: user._id,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+      hasPassword: !!user.password
+    } : 'null');
 
     if (!user) {
-      console.log('User not found in any model');
       return NextResponse.json(
         {
           error: 'Invalid credentials',
@@ -115,33 +89,8 @@ export async function POST(request) {
       );
     }
 
-    // Verify role match if specified
-    if (role) {
-      const userRole = user.role?.toLowerCase();
-      const requestedRole = role.toLowerCase();
-
-      if (userRole !== requestedRole) {
-        console.log(`Role mismatch: User has ${userRole}, requested ${requestedRole}`);
-        return NextResponse.json(
-          {
-            error: 'Invalid credentials',
-            message: 'Please check your account type and try again'
-          },
-          { status: 401 }
-        );
-      }
-    }
-
-    console.log('User found:', {
-      id: user._id,
-      email: user.email,
-      role: user.role,
-      isActive: user.isActive,
-      model: user.constructor.modelName
-    });
-
     // Check if account is locked
-    if (user.isLocked && user.isLocked()) {
+    if (user.isLocked()) {
       const lockTime = Math.round((user.lockUntil - Date.now()) / 1000 / 60);
       return NextResponse.json(
         {
@@ -152,34 +101,25 @@ export async function POST(request) {
       );
     }
 
-    // Check if user is active
+    // Check if account is active
     if (!user.isActive) {
       return NextResponse.json(
         {
-          error: 'Account suspended',
-          message: 'Your account has been suspended. Please contact support.'
+          error: 'Account inactive',
+          message: 'Your account has been deactivated. Please contact support.'
         },
         { status: 403 }
       );
     }
 
     // Verify password
+    console.log('Comparing password...');
     const isPasswordValid = await user.comparePassword(password);
+    console.log('Password valid:', isPasswordValid);
 
     if (!isPasswordValid) {
-      console.log('Invalid password for user:', user.email);
-
-      // Increment login attempts if method exists
-      if (user.incLoginAttempts) {
-        await user.incLoginAttempts();
-      } else {
-        // Fallback for models without this method
-        user.loginAttempts = (user.loginAttempts || 0) + 1;
-        if (user.loginAttempts >= 5) {
-          user.lockUntil = Date.now() + 2 * 60 * 60 * 1000; // 2 hours
-        }
-        await user.save();
-      }
+      // Increment login attempts
+      await user.incLoginAttempts();
 
       return NextResponse.json(
         {
@@ -190,17 +130,9 @@ export async function POST(request) {
       );
     }
 
-    console.log('Password valid, proceeding with login');
-
     // Reset login attempts on successful login
-    if (user.resetLoginAttempts) {
-      if (user.loginAttempts > 0) {
-        await user.resetLoginAttempts();
-      }
-    } else {
-      // Fallback reset
-      user.loginAttempts = 0;
-      user.lockUntil = undefined;
+    if (user.loginAttempts > 0) {
+      await user.resetLoginAttempts();
     }
 
     // Update last login
@@ -209,16 +141,13 @@ export async function POST(request) {
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user);
 
-    // Store refresh token (ensure array exists)
-    if (!user.refreshTokens) {
-      user.refreshTokens = [];
-    }
+    // Store refresh token in user document
     user.refreshTokens.push({
       token: refreshToken,
       createdAt: new Date()
     });
 
-    // Keep only the last 5 refresh tokens
+    // Keep only last 5 refresh tokens
     if (user.refreshTokens.length > 5) {
       user.refreshTokens = user.refreshTokens.slice(-5);
     }
@@ -226,23 +155,7 @@ export async function POST(request) {
     await user.save();
 
     // Prepare user data for response
-    let userData;
-    if (user.toPublicProfile) {
-      userData = user.toPublicProfile();
-    } else {
-      // Fallback if method doesn't exist
-      userData = {
-        id: user._id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        isEmailVerified: user.isEmailVerified,
-        isPhoneVerified: user.isPhoneVerified,
-        isIdentityVerified: user.isIdentityVerified
-      };
-    }
-
-    console.log('Login successful for:', user.email);
+    const userData = user.toPublicProfile();
 
     // Set refresh token as httpOnly cookie
     const response = NextResponse.json({

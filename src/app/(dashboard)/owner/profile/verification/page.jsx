@@ -234,7 +234,7 @@ export default function OwnerVerificationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="container mx-auto px-4 py-8">
         <ProfileNavigation />
 
@@ -242,25 +242,25 @@ export default function OwnerVerificationPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <div className="p-3 bg-red-100 rounded-full">
-                <Building className="w-8 h-8 text-red-600" />
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <Building className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               Property Owner Verification
             </h1>
-            <Badge variant="destructive" className="mb-4">
+            <Badge variant="destructive" className="mb-4 bg-red-600 dark:bg-red-700">
               Required for All Property Owners
             </Badge>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               Complete identity verification to list properties and build trust with students
             </p>
           </div>
 
           {/* Required Notice */}
-          <Alert className="mb-8 border-red-200 bg-red-50">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
+          <Alert className="mb-8 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertDescription className="text-red-800 dark:text-red-200">
               <strong>Verification Required:</strong> All property owners must complete identity verification before listing properties. This helps build trust and ensures the safety of our student community.
             </AlertDescription>
           </Alert>
@@ -275,16 +275,16 @@ export default function OwnerVerificationPage() {
 
                 return (
                   <div key={step.id} className="flex items-center">
-                    <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 ${isCompleted
-                      ? 'bg-green-600 border-green-600 text-white'
+                    <div className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${isCompleted
+                      ? 'bg-green-600 dark:bg-green-500 border-green-600 dark:border-green-500 text-white shadow-lg shadow-green-500/25'
                       : isActive
-                        ? 'bg-red-600 border-red-600 text-white'
-                        : 'bg-gray-200 border-gray-300 text-gray-500'
+                        ? 'bg-red-600 dark:bg-red-500 border-red-600 dark:border-red-500 text-white shadow-lg shadow-red-500/25'
+                        : 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
                       }`}>
                       <Icon className="w-5 h-5" />
                     </div>
                     {index < steps.length - 1 && (
-                      <div className={`w-12 h-0.5 ${isCompleted ? 'bg-green-600' : 'bg-gray-300'
+                      <div className={`w-12 h-0.5 transition-colors duration-300 ${isCompleted ? 'bg-green-600 dark:bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
                         }`} />
                     )}
                   </div>
@@ -293,8 +293,8 @@ export default function OwnerVerificationPage() {
             </div>
 
             <div className="text-center mt-3">
-              <h3 className="font-semibold">{steps[currentStep]?.title}</h3>
-              <p className="text-sm text-gray-600">Step {currentStep + 1} of {steps.length}</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{steps[currentStep]?.title}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Step {currentStep + 1} of {steps.length}</p>
             </div>
           </div>
 
@@ -317,46 +317,46 @@ export default function OwnerVerificationPage() {
             )}
 
             {currentStep === 2 && (
-              <Card className="max-w-2xl mx-auto">
+              <Card className="max-w-2xl mx-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
                 <CardHeader className="text-center">
                   <div className="flex justify-center mb-4">
-                    <div className="p-3 bg-green-100 rounded-full">
-                      <CheckCircle className="w-8 h-8 text-green-600" />
+                    <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                      <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
                     </div>
                   </div>
-                  <CardTitle>Verification Complete!</CardTitle>
+                  <CardTitle className="text-gray-900 dark:text-gray-100">Verification Complete!</CardTitle>
                 </CardHeader>
 
                 <CardContent className="space-y-6">
-                  <Alert className="border-green-200 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
+                  <Alert className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <AlertDescription className="text-green-800 dark:text-green-200">
                       Congratulations! Your identity has been successfully verified. You can now list properties and start building your rental business.
                     </AlertDescription>
                   </Alert>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <FileText className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                      <h4 className="font-semibold">Document Verified</h4>
-                      <p className="text-sm text-gray-600">Identity confirmed</p>
+                    <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600">
+                      <FileText className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">Document Verified</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Identity confirmed</p>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <Camera className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                      <h4 className="font-semibold">Selfie Matched</h4>
-                      <p className="text-sm text-gray-600">Face verification passed</p>
+                    <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600">
+                      <Camera className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">Selfie Matched</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Face verification passed</p>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <h4 className="font-semibold">Next Steps:</h4>
-                    <ul className="space-y-2 text-sm">
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">Next Steps:</h4>
+                    <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                       <li className="flex items-center gap-2">
-                        <ArrowRight className="w-4 h-4 text-blue-600" />
+                        <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         <span>Create your first property listing</span>
                       </li>
                       <li className="flex items-center gap-2">
-                        <ArrowRight className="w-4 h-4 text-blue-600" />
+                        <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         <span>Set up your owner dashboard</span>
                       </li>
                       <li className="flex items-center gap-2">
@@ -393,9 +393,9 @@ export default function OwnerVerificationPage() {
 
           {/* Required Notice */}
           <div className="text-center mt-6">
-            <Alert className="max-w-md mx-auto border-amber-200 bg-amber-50">
-              <Info className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800 text-sm">
+            <Alert className="max-w-md mx-auto border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+              <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200 text-sm">
                 Verification cannot be skipped for property owners. This ensures the safety and trust of our student community.
               </AlertDescription>
             </Alert>
