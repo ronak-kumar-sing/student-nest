@@ -38,7 +38,7 @@ export async function POST(request) {
         {
           success: false,
           error: 'Validation failed',
-          message: validationResult.error.errors[0].message
+          message: validationResult.error.errors?.[0]?.message || 'Invalid request data'
         },
         { status: 400 }
       );
@@ -68,16 +68,17 @@ export async function POST(request) {
 
     // Verify OTP first
     console.log('🔍 Verifying OTP...');
-    const isValidOTP = await OTP.verifyOTP(identifier, otp, 'password-reset');
-    console.log('🔍 OTP verification result:', isValidOTP);
+    const type = identifier.includes('@') ? 'email' : 'phone';
+    const otpResult = await OTP.verifyOTP(identifier, type, otp, 'password-reset');
+    console.log('🔍 OTP verification result:', otpResult);
 
-    if (!isValidOTP) {
+    if (!otpResult.success) {
       console.log('❌ OTP verification failed');
       return NextResponse.json(
         {
           success: false,
           error: 'Invalid OTP',
-          message: 'The OTP code is invalid or has expired. Please request a new one.'
+          message: otpResult.message || 'The OTP code is invalid or has expired. Please request a new one.'
         },
         { status: 400 }
       );

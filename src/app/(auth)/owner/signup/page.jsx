@@ -42,9 +42,25 @@ export default function OwnerSignupPage() {
       const data = await res.json()
 
       if (res.ok) {
-        toast.success("Account created! Please complete verification to activate your account.")
-        // Redirect to verification page
-        window.location.href = "/owner/verify"
+        toast.success("Account created successfully! Welcome to Student Nest!")
+
+        // Store user data and tokens
+        if (data.success && data.user) {
+          localStorage.setItem("token", data.accessToken)
+          localStorage.setItem("user", JSON.stringify({
+            ...data.user,
+            userType: 'owner'
+          }))
+        }
+
+        // Check if verification is required
+        if (data.nextStep === 'verification') {
+          toast.info("Please complete verification to activate all features.")
+          window.location.href = "/owner/verify"
+        } else {
+          // Redirect to home page
+          window.location.href = "/dashboard"
+        }
       } else {
         toast.error(data.error || "Sign up failed. Please try again.")
       }

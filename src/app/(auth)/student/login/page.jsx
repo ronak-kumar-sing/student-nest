@@ -91,7 +91,7 @@ export default function StudentLoginPage() {
             </div>
 
             <div className="flex justify-end">
-              <Link href="/student/forgot-password" className="text-sm text-blue-600 hover:underline">
+              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
                 Forgot password?
               </Link>
             </div>

@@ -101,7 +101,7 @@ export default function OwnerLoginPage() {
             </div>
 
             <div className="flex justify-end">
-              <Link href="/owner/forgot-password" className="text-sm text-green-600 hover:underline">
+              <Link href="/forgot-password" className="text-sm text-green-600 hover:underline">
                 Forgot password?
               </Link>
             </div>

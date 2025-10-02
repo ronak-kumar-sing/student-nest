@@ -42,9 +42,19 @@ export default function StudentSignupPage() {
       const data = await res.json()
 
       if (res.ok) {
-        toast.success("Account created successfully! You can now log in.")
-        // Redirect to login page
-        window.location.href = "/student/login"
+        toast.success("Account created successfully! Welcome to Student Nest!")
+
+        // Store user data and redirect to home page
+        if (data.success && data.data) {
+          localStorage.setItem("token", data.data.token || data.data.accessToken)
+          localStorage.setItem("user", JSON.stringify({
+            ...data.data.user,
+            userType: 'student'
+          }))
+        }
+
+        // Redirect to home page instead of login
+        window.location.href = "/dashboard"
       } else {
         toast.error(data.error || "Sign up failed. Please try again.")
       }

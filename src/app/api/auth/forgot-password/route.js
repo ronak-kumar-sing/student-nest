@@ -25,15 +25,27 @@ export async function POST(request) {
   try {
     console.log('🔄 Forgot password request started');
 
-    // Rate limiting
-    const rateLimiterRes = await rateLimiter.consume(
-      request.headers.get('x-forwarded-for') ||
-      request.headers.get('x-real-ip') ||
-      'default'
-    );
-
     const body = await request.json();
     console.log('📥 Request body:', { identifier: body.identifier });
+
+    const clientIP = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+
+    // Rate limiting
+    try {
+      await rateLimiter.consume(clientIP, body.identifier);
+    } catch (rateLimiterRes) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Too many requests',
+          message: `Too many password reset attempts. Try again in ${Math.round(rateLimiterRes.msBeforeNext / 1000)} seconds.`,
+          retryAfter: Math.round(rateLimiterRes.msBeforeNext / 1000)
+        },
+        { status: 429 }
+      );
+    }
 
     // Validate input
     const validationResult = forgotPasswordSchema.safeParse(body);
@@ -58,11 +70,14 @@ export async function POST(request) {
 
     // Determine if identifier is email or phone
     let query = {};
+    let type = 'email';
     if (identifier.includes('@')) {
       query.email = normalizeEmail(identifier);
+      type = 'email';
       console.log('📧 Looking for user by email:', query.email);
     } else {
       query.phone = sanitizePhone(identifier);
+      type = 'phone';
       console.log('📱 Looking for user by phone:', query.phone);
     }
 
@@ -88,22 +103,41 @@ export async function POST(request) {
       });
     }
 
+    // Check if account is locked
+    if (user.isLocked && user.isLocked()) {
+      console.log('🔒 User account is locked');
+      return NextResponse.json({
+        success: true,
+        message: 'If an account with this email/phone exists, you will receive a password reset code.'
+      });
+    }
+
     console.log('🔢 Generating OTP...');
     // Generate and save OTP
-  const otpDoc = await OTP.createOTP(identifier, identifier.includes('@') ? 'email' : 'phone', 'password-reset', user._id);
-  const otp = otpDoc.code;
-  console.log('✅ OTP generated:', { identifier, purpose: 'password-reset' });
+    const otpDoc = await OTP.createOTP(identifier, type, 'password-reset', user._id);
+    const otp = otpDoc.code;
+    console.log('✅ OTP generated:', { identifier, type, purpose: 'password-reset' });
 
     // Send OTP via email or SMS
     let sendResult;
-    if (identifier.includes('@')) {
-      console.log('📧 Sending OTP via email...');
-      sendResult = await sendOTPEmail(identifier, otp, 'password_reset');
-      console.log('📧 Email send result:', sendResult ? 'success' : 'failed');
-    } else {
-      console.log('📱 Sending OTP via SMS...');
-      sendResult = await sendOTPSMS(identifier, otp, 'password_reset');
-      console.log('📱 SMS send result:', sendResult ? 'success' : 'failed');
+    try {
+      if (type === 'email') {
+        console.log('📧 Sending OTP via email...');
+        sendResult = await sendOTPEmail(identifier, otp, 'password_reset');
+        console.log('📧 Email send result:', sendResult ? 'success' : 'failed');
+      } else {
+        console.log('📱 Sending OTP via SMS...');
+        sendResult = await sendOTPSMS(identifier, otp, 'password_reset');
+        console.log('📱 SMS send result:', sendResult ? 'success' : 'failed');
+      }
+    } catch (sendError) {
+      console.error('❌ Failed to send OTP:', sendError);
+      // Clean up the OTP if sending fails
+      await OTP.deleteOne({ _id: otpDoc._id });
+      return NextResponse.json({
+        success: true,
+        message: 'If an account with this email/phone exists, you will receive a password reset code.'
+      });
     }
 
     console.log('✅ Forgot password process completed successfully');
@@ -115,18 +149,6 @@ export async function POST(request) {
   } catch (error) {
     console.error('💥 Forgot password error:', error);
     console.error('Stack trace:', error.stack);
-
-    if (error.totalHits > error.maxHits) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Too many requests',
-          message: `Too many password reset attempts. Try again in ${Math.round(error.msBeforeNext / 1000)} seconds.`,
-          retryAfter: Math.round(error.msBeforeNext / 1000)
-        },
-        { status: 429 }
-      );
-    }
 
     return NextResponse.json(
       {

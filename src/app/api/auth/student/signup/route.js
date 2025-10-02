@@ -7,7 +7,6 @@ import { generateTokens } from '@/lib/utils/jwt';
 import { sendWelcomeEmail } from '@/lib/utils/email';
 import { sendWelcomeSMS } from '@/lib/utils/sms';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
-import bcrypt from 'bcryptjs';
 
 // Rate limiter: 3 signups per hour per IP
 const rateLimiter = new RateLimiterMemory({
@@ -87,7 +86,7 @@ export async function POST(request) {
 
     // Verify phone OTP - look for successfully verified OTP
     const phoneOTP = await OTP.findOne({
-      identifier: phoneNumber,
+      identifier: phone,
       type: 'phone',
       isUsed: true
     }).sort({ createdAt: -1 });
@@ -96,18 +95,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Phone verification required' }, { status: 400 });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create new student
+    // Create new student (role and password hashing handled automatically)
     const student = new Student({
       fullName,
       email,
       phone,
-      password: hashedPassword,
+      password, // Will be hashed by User model pre-save middleware
       collegeId,
       collegeName,
-      role: 'student',
       isEmailVerified: true,
       isPhoneVerified: true
     });

@@ -23,14 +23,23 @@ export const sendOTPSMS = async (phone, otp, purpose = 'verification') => {
     if (PHONE_SERVICE === 'mock') {
       result = await mockSMSService.sendSMS(phone, message);
     } else if (PHONE_SERVICE === 'twilio') {
-      try {
-        // Try WhatsApp first (cheaper), fallback to SMS
-        result = await sendWhatsApp(phone, message);
-        result.channel = 'whatsapp';
-      } catch (whatsappError) {
-        console.log('WhatsApp failed, falling back to SMS:', whatsappError.message);
+      // For Indian numbers, skip WhatsApp sandbox and use SMS directly
+      const isIndianNumber = phone.startsWith('+91');
+
+      if (isIndianNumber) {
+        console.log('📱 Indian number detected, using SMS directly (WhatsApp sandbox not configured)');
         result = await sendSMS(phone, message);
         result.channel = 'sms';
+      } else {
+        try {
+          // Try WhatsApp first (cheaper), fallback to SMS
+          result = await sendWhatsApp(phone, message);
+          result.channel = 'whatsapp';
+        } catch (whatsappError) {
+          console.log('WhatsApp failed, falling back to SMS:', whatsappError.message);
+          result = await sendSMS(phone, message);
+          result.channel = 'sms';
+        }
       }
     } else {
       result = await mockSMSService.sendSMS(phone, message);

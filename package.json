@@ -4,11 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:start": "./scripts/dev-start.sh",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "node -r dotenv/config scripts/seed.js dotenv_config_path=.env.local",
-    "db:reset": "node -r dotenv/config scripts/seed.js dotenv_config_path=.env.local"
+    "db:reset": "node -r dotenv/config scripts/seed.js dotenv_config_path=.env.local",
+    "test:forgot-password": "node -r dotenv/config scripts/test-forgot-password.js dotenv_config_path=.env.local",
+    "test:services": "node -r dotenv/config scripts/test-services.js dotenv_config_path=.env.local",
+    "test:e2e": "node -r dotenv/config scripts/test-e2e-services.js dotenv_config_path=.env.local"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -43,6 +47,7 @@
     "mongoose": "^8.18.1",
     "next": "15.5.2",
     "next-themes": "^0.4.6",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.6",
     "rate-limiter-flexible": "^7.3.1",
     "react": "19.1.0",

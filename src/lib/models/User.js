@@ -147,9 +147,7 @@ userSchema.methods.toPublicProfile = function() {
   return userObject;
 };
 
-// Index for better performance
-userSchema.index({ email: 1 });
-userSchema.index({ phone: 1 });
+// Index for better performance (email and phone already have unique indexes)
 userSchema.index({ role: 1 });
 
 export default mongoose.models.User || mongoose.model('User', userSchema);
