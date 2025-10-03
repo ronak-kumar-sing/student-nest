@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 
-export default function OwnerVisitsPage() {
+export default function OwnerVisitsPageNew() {
   const [visitData, setVisitData] = useState(null);
   const [filteredVisits, setFilteredVisits] = useState([]);
   const [loading, setLoading] = useState(true);

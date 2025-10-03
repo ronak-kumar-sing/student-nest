@@ -648,6 +648,31 @@ class ApiClient {
     return response;
   }
 
+  // Owner Analytics methods
+  async getOwnerAnalytics(type = 'all') {
+    return this.request(`/owner/analytics?type=${type}`, {
+      method: 'GET',
+    });
+  }
+
+  async getOwnerActivity() {
+    return this.request('/owner/analytics?type=activity', {
+      method: 'GET',
+    });
+  }
+
+  async getOwnerVisitRequests() {
+    return this.request('/owner/analytics?type=visits', {
+      method: 'GET',
+    });
+  }
+
+  async getOwnerRevenue() {
+    return this.request('/owner/analytics?type=revenue', {
+      method: 'GET',
+    });
+  }
+
   // Admin methods
   async adminLogin(credentials) {
     return this.request('/admin/auth/login', {

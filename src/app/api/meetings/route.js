@@ -3,17 +3,18 @@ import connectDB from '@/lib/db/connection';
 import Meeting from '@/lib/models/Meeting';
 import Room from '@/lib/models/Room';
 import User from '@/lib/models/User';
-import jwt from 'jsonwebtoken';
+import { verifyAccessToken } from '@/lib/utils/jwt';
 
 // Helper function to verify JWT token
 async function verifyToken(request) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new Error('No token provided');
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const token = authHeader.substring(7);
+    const decoded = verifyAccessToken(token);
     return decoded;
   } catch (error) {
     throw new Error('Invalid token');
@@ -84,12 +85,19 @@ export async function POST(request) {
     // Validate preferred dates
     const preferredDates = body.preferredDates.map(date => new Date(date));
     const now = new Date();
-    const validDates = preferredDates.filter(date => date > now);
+    // Add 30 minutes buffer to account for processing time
+    const minDate = new Date(now.getTime() + (30 * 60 * 1000));
+    const validDates = preferredDates.filter(date => date > minDate);
 
     if (validDates.length === 0) {
+      console.log('Date validation failed:', {
+        preferredDates: preferredDates.map(d => d.toISOString()),
+        now: now.toISOString(),
+        minDate: minDate.toISOString()
+      });
       return NextResponse.json({
         success: false,
-        error: 'All preferred dates must be in the future'
+        error: 'All preferred dates must be at least 30 minutes in the future'
       }, { status: 400 });
     }
 

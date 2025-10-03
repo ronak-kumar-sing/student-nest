@@ -14,7 +14,10 @@ import {
   DollarSign,
   Star,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Power,
+  PowerOff,
+  Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api';
@@ -47,7 +50,75 @@ export default function OwnerPropertiesPage() {
     }
   };
 
+  const handlePropertyAction = async (propertyId, action) => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/properties/my-properties', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ propertyId, action })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update the local state
+        setProperties(prev => prev.map(prop =>
+          prop._id === propertyId
+            ? { ...prop, status: result.data.property.status, availability: result.data.property.availability }
+            : prop
+        ));
+        // Show success message (you can use toast here)
+        alert(result.message);
+      } else {
+        throw new Error(result.error || 'Failed to update property');
+      }
+    } catch (error) {
+      console.error('Error updating property:', error);
+      alert('Error updating property: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProperty = async (propertyId) => {
+    if (!confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/properties/my-properties?propertyId=${propertyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Remove from local state
+        setProperties(prev => prev.filter(prop => prop._id !== propertyId));
+        alert('Property deleted successfully');
+      } else {
+        throw new Error(result.error || 'Failed to delete property');
+      }
+    } catch (error) {
+      console.error('Error deleting property:', error);
+      alert('Error deleting property: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusBadge = (property) => {
+    if (property.status === 'inactive') {
+      return <Badge variant="destructive">Inactive</Badge>;
+    }
     if (!property.availability?.isAvailable) {
       return <Badge variant="destructive">Unavailable</Badge>;
     }
@@ -192,6 +263,38 @@ export default function OwnerPropertiesPage() {
                   <Button variant="outline" size="sm" className="flex-1">
                     <Edit className="h-4 w-4 mr-2" />
                     Edit
+                  </Button>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  {property.status === 'active' ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-orange-600 border-orange-600 hover:bg-orange-50"
+                      onClick={() => handlePropertyAction(property._id, 'deactivate')}
+                    >
+                      <PowerOff className="h-4 w-4 mr-2" />
+                      Deactivate
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-green-600 border-green-600 hover:bg-green-50"
+                      onClick={() => handlePropertyAction(property._id, 'activate')}
+                    >
+                      <Power className="h-4 w-4 mr-2" />
+                      Activate
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-600 hover:bg-red-50"
+                    onClick={() => handleDeleteProperty(property._id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardContent>

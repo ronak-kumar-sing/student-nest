@@ -34,7 +34,13 @@ function MeetingScheduler({ propertyId, ownerId, onScheduleSuccess, trigger }) {
 
     try {
       // Create ISO date for the preferred meeting time
-      const meetingDateTime = new Date(`${formData.selectedDate}T${formData.selectedTime}`);
+      // Add timezone offset to ensure it's interpreted correctly
+      const meetingDateTime = new Date(`${formData.selectedDate}T${formData.selectedTime}:00`);
+
+      // Ensure the date is valid and in the future
+      if (isNaN(meetingDateTime.getTime()) || meetingDateTime <= new Date()) {
+        throw new Error('Please select a valid future date and time');
+      }
 
       const meetingData = {
         propertyId,
@@ -87,10 +93,11 @@ function MeetingScheduler({ propertyId, ownerId, onScheduleSuccess, trigger }) {
     return slots;
   };
 
-  // Get minimum date (today)
+  // Get minimum date (tomorrow to avoid timezone issues)
   const getMinDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
   };
 
   return (

@@ -20,6 +20,8 @@ import OwnerStatsCards from "@/components/dashboard/OwnerStatsCards";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import OwnerQuickActions from "@/components/dashboard/OwnerQuickActions";
 import AnalyticsOverview from "@/components/dashboard/AnalyticsOverview";
+import VisitRequestsWidget from "@/components/dashboard/VisitRequestsWidget";
+import RevenueWidget from "@/components/dashboard/RevenueWidget";
 import VerificationWidget from "@/components/verification/VerificationWidget";
 import { useVerificationStatus } from "@/components/verification/VerificationGuard";
 import apiClient from "@/lib/api";
@@ -48,45 +50,71 @@ export default function OwnerDashboardPage() {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.getDashboard();
 
-      if (response.success) {
-        // Transform API response to match existing component structure
-        const apiData = response.data;
+      // Load dashboard data and analytics in parallel
+      const [dashboardResponse, analyticsResponse] = await Promise.all([
+        apiClient.getDashboard(),
+        apiClient.getOwnerAnalytics('all')
+      ]);
+
+      if (dashboardResponse.success && analyticsResponse.success) {
+        const dashData = dashboardResponse.data;
+        const analyticsData = analyticsResponse.data;
+
         setDashboardData({
           stats: {
-            activeListings: apiData.stats?.totalProperties || 0,
-            fullyBooked: apiData.stats?.occupiedProperties || 0,
-            monthlyRevenue: apiData.stats?.monthlyRevenue || 0,
-            revenueChange: apiData.stats?.revenueChange || 0,
-            pendingVisits: apiData.stats?.pendingMeetings || 0,
-            totalMessages: apiData.stats?.totalMessages || 0,
-            unreadMessages: apiData.stats?.unreadMessages || 0,
-            totalBookings: apiData.stats?.totalBookings || 0,
-            occupancyRate: apiData.stats?.occupancyRate || 0,
-            pendingBookings: apiData.stats?.pendingBookings || 0
+            activeListings: dashData.stats?.activeListings || 0,
+            fullyBooked: dashData.stats?.fullyBooked || 0,
+            monthlyRevenue: dashData.stats?.monthlyRevenue || analyticsData.revenue?.currentMonth || 0,
+            revenueChange: analyticsData.revenue?.changePercentage || dashData.stats?.revenueChange || 0,
+            pendingVisits: dashData.stats?.pendingVisits || analyticsData.visitRequests?.pending || 0,
+            totalMessages: dashData.stats?.totalMessages || 0,
+            unreadMessages: dashData.stats?.unreadMessages || 0,
+            totalBookings: dashData.stats?.totalBookings || 0,
+            occupancyRate: dashData.stats?.occupancyRate || 0,
+            pendingBookings: dashData.stats?.pendingBookings || 0,
+            totalReviews: dashData.stats?.totalReviews || 0
           },
-          activities: apiData.recentActivity || [],
+          activities: analyticsData.recentActivity || dashData.recentActivity || [],
           analytics: {
-            monthlyRevenue: apiData.stats?.monthlyRevenue || 0,
-            revenueChange: apiData.stats?.revenueChange || 0,
-            totalBookings: apiData.stats?.totalBookings || 0,
-            bookingChange: apiData.stats?.bookingChange || 0,
-            averageOccupancy: apiData.stats?.occupancyRate || 0,
-            occupancyChange: apiData.stats?.occupancyChange || 0,
-            totalProperties: apiData.stats?.totalProperties || 0,
-            topPerformingProperty: apiData.stats?.topPerformingProperty || "N/A",
-            conversionRate: apiData.stats?.conversionRate || 0,
-            conversionChange: apiData.stats?.conversionChange || 0
-          }
+            monthlyRevenue: analyticsData.revenue?.currentMonth || dashData.stats?.monthlyRevenue || 0,
+            revenueChange: analyticsData.revenue?.changePercentage || dashData.stats?.revenueChange || 0,
+            totalBookings: dashData.stats?.totalBookings || 0,
+            bookingChange: dashData.stats?.bookingChange || 0,
+            averageOccupancy: dashData.stats?.occupancyRate || 0,
+            occupancyChange: dashData.stats?.occupancyChange || 0,
+            totalProperties: dashData.stats?.activeListings || 0,
+            topPerformingProperty: dashData.stats?.topPerformingProperty || "N/A",
+            conversionRate: dashData.stats?.conversionRate || 0,
+            conversionChange: dashData.stats?.conversionChange || 0
+          },
+          visitRequests: analyticsData.visitRequests || null,
+          revenue: analyticsData.revenue || null,
+          propertyPerformance: analyticsData.propertyPerformance || []
         });
       } else {
-        // No data available - show empty state
-        setDashboardData({
-          stats: {},
-          activities: [],
-          analytics: {}
-        });
+        // Fallback to basic dashboard data if analytics fails
+        if (dashboardResponse.success) {
+          const apiData = dashboardResponse.data;
+          setDashboardData({
+            stats: {
+              activeListings: apiData.stats?.activeListings || 0,
+              fullyBooked: apiData.stats?.fullyBooked || 0,
+              monthlyRevenue: apiData.stats?.monthlyRevenue || 0,
+              revenueChange: apiData.stats?.revenueChange || 0,
+              pendingVisits: apiData.stats?.pendingVisits || 0,
+              totalMessages: apiData.stats?.totalMessages || 0,
+              unreadMessages: apiData.stats?.unreadMessages || 0,
+              totalBookings: apiData.stats?.totalBookings || 0,
+              occupancyRate: apiData.stats?.occupancyRate || 0,
+              pendingBookings: apiData.stats?.pendingBookings || 0
+            },
+            activities: apiData.recentActivity || [],
+            analytics: {}
+          });
+        } else {
+          throw new Error('Failed to load dashboard data');
+        }
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -94,7 +122,10 @@ export default function OwnerDashboardPage() {
       setDashboardData({
         stats: {},
         activities: [],
-        analytics: {}
+        analytics: {},
+        visitRequests: null,
+        revenue: null,
+        propertyPerformance: []
       });
     } finally {
       setIsLoading(false);
@@ -172,11 +203,17 @@ export default function OwnerDashboardPage() {
         <div className="xl:col-span-2 space-y-6">
           <ActivityFeed activities={dashboardData.activities} />
           <AnalyticsOverview analyticsData={dashboardData.analytics} />
+
+          {/* Visit Requests */}
+          <VisitRequestsWidget visitRequests={dashboardData.visitRequests} />
         </div>
 
-        {/* Right Column - Quick Actions */}
+        {/* Right Column - Quick Actions & Revenue */}
         <div className="space-y-6">
           <OwnerQuickActions stats={dashboardData.stats} />
+
+          {/* Revenue & Payments */}
+          <RevenueWidget revenue={dashboardData.revenue} />
 
           {/* Additional Owner Tools */}
           <Card className="bg-card border-border">

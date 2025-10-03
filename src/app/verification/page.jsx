@@ -121,7 +121,7 @@ export default function VerificationPage() {
             <Shield className="w-16 h-16 mx-auto mb-4 text-blue-600" />
             <h1 className="text-2xl font-bold mb-2">Identity Verification</h1>
             <p className="text-gray-600 mb-4">Please log in to start the verification process.</p>
-            <Button onClick={() => window.location.href = '/student/login'}>
+            <Button onClick={() => window.location.href = '/login'}>
               Go to Login
             </Button>
           </CardContent>
@@ -189,10 +189,10 @@ export default function VerificationPage() {
                 <div
                   key={step.id}
                   className={`p-4 rounded-lg border-2 transition-all ${isActive
-                      ? 'border-blue-500 bg-blue-50'
-                      : isCompleted
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 bg-gray-50'
+                    ? 'border-blue-500 bg-blue-50'
+                    : isCompleted
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 bg-gray-50'
                     }`}
                 >
                   <div className="flex flex-col items-center text-center">
@@ -280,7 +280,11 @@ export default function VerificationPage() {
 
               <Button
                 variant="outline"
-                onClick={() => window.location.href = '/dashboard'}
+                onClick={() => {
+                  const userRole = user?.role?.toLowerCase();
+                  const dashboardUrl = userRole === 'owner' ? '/owner/dashboard' : '/student/dashboard';
+                  window.location.href = dashboardUrl;
+                }}
                 className="flex items-center gap-2"
               >
                 <User className="w-4 h-4" />
