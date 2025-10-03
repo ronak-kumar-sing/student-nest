@@ -21,7 +21,7 @@ export const NAV_ITEMS = [
   { label: "Analytics", href: "/owner/analytics", icon: TrendingUp, roles: ["owner"] },
   { label: "Messages", href: "/dashboard/messages", icon: MessagesSquare },
   { label: "Saved", href: "/dashboard/saved", icon: Bookmark, roles: ["student"] },
-  { label: "Post Room", href: "/dashboard/post-room", icon: Plus, roles: ["owner"] },
+  { label: "Post Property", href: "/owner/post-property", icon: Plus, roles: ["owner"] },
   { label: "Payments", href: "/owner/payments", icon: CreditCard, roles: ["owner"] },
   { label: "Student Profile", href: "/student/profile", icon: User, roles: ["student"] },
   { label: "Owner Profile", href: "/owner/profile", icon: Building, roles: ["owner"] },

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-import connectDB from '@/lib/db/connect';
+import connectDB from '@/lib/db/connection';
+import User from '@/lib/models/User';
 import Owner from '@/lib/models/Owner';
+import { verifyAccessToken } from '@/lib/utils/jwt';
 import { z } from 'zod';
 
 // Validation schema for owner profile updates
@@ -29,17 +30,34 @@ async function getAuthenticatedUser(request) {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyAccessToken(token);
 
-    if (!decoded.userId || decoded.role?.toLowerCase() !== 'owner') {
-      return { error: 'Invalid token or unauthorized access' };
+    if (!decoded.userId) {
+      return { error: 'Invalid token payload' };
     }
 
     await connectDB();
-    const user = await Owner.findById(decoded.userId);
+
+    // First try to find in User model (discriminator approach)
+    let user = await User.findById(decoded.userId);
+
+    // If not found, try Owner model directly
+    if (!user) {
+      user = await Owner.findById(decoded.userId);
+    }
 
     if (!user) {
+      console.log('User not found with ID:', decoded.userId);
       return { error: 'User not found' };
+    }
+
+    // Check if user has owner role
+    if (user.role?.toLowerCase() !== 'owner') {
+      return { error: 'Unauthorized: Owner access required' };
+    }
+
+    if (!user.isActive) {
+      return { error: 'User account is inactive' };
     }
 
     return { user };
@@ -61,21 +79,42 @@ export async function GET(request) {
       }, { status: 401 });
     }
 
-    // Calculate business statistics
+    // Extract profile data safely
     const profileData = {
-      ...user.toPublicProfile(),
-      profileCompletion: user.profileCompletion,
-      // Business statistics that the frontend expects
-      totalProperties: user.totalProperties,
-      activeListings: user.activeListings,
-      totalTenants: user.totalTenants,
-      totalBookings: user.totalBookings,
-      averageRating: user.averageRating,
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      city: user.city,
+      state: user.state,
+      bio: user.bio,
+      profilePhoto: user.profilePhoto,
+      isActive: user.isActive,
+      isEmailVerified: user.isEmailVerified,
+      isPhoneVerified: user.isPhoneVerified,
+      isIdentityVerified: user.isIdentityVerified,
+      // Business information (from Owner model)
+      businessName: user.businessName,
+      businessType: user.businessType,
+      businessDescription: user.businessDescription,
+      gstNumber: user.gstNumber,
+      experience: user.experience,
+      licenseNumber: user.licenseNumber,
+      // Statistics (with defaults)
+      totalProperties: user.totalProperties || 0,
+      activeListings: user.activeListings || 0,
+      totalTenants: user.totalTenants || 0,
+      totalBookings: user.totalBookings || 0,
+      averageRating: user.averageRating || 0,
+      // Profile completion
+      profileCompletion: user.calculateProfileCompleteness ? user.calculateProfileCompleteness() : 50,
       // Verification status
-      isVerified: user.verification?.status === 'verified',
-      verificationStatus: user.verification?.status,
+      isVerified: user.verification?.status === 'verified' || user.isIdentityVerified,
+      verificationStatus: user.verification?.status || 'pending',
       // Member info
-      memberSince: user.createdAt
+      memberSince: user.createdAt,
+      lastLoginAt: user.lastLoginAt
     };
 
     return NextResponse.json({
