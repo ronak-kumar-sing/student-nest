@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/db/connect';
 import Student from '@/lib/models/Student';
+import { verifyAccessToken } from '@/lib/utils/jwt';
 import { z } from 'zod';
 
 // Validation schema for student profile updates
@@ -38,7 +38,7 @@ async function getAuthenticatedUser(request) {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyAccessToken(token);
 
     if (!decoded.userId || decoded.role?.toLowerCase() !== 'student') {
       return { error: 'Invalid token or unauthorized access' };

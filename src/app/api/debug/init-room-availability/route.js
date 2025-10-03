@@ -9,24 +9,24 @@ export async function POST(request) {
 
     // Update all rooms to have totalRooms and availableRooms fields if they don't exist
     const result = await Room.updateMany(
-      { 
+      {
         $or: [
           { 'availability.totalRooms': { $exists: false } },
           { 'availability.availableRooms': { $exists: false } }
         ]
       },
-      { 
-        $set: { 
+      {
+        $set: {
           'availability.totalRooms': 1,
           'availability.availableRooms': 1
-        } 
+        }
       }
     );
 
     console.log(`Updated ${result.modifiedCount} rooms with availability fields`);
 
     // Verify the update
-    const roomCount = await Room.countDocuments({ 
+    const roomCount = await Room.countDocuments({
       'availability.totalRooms': { $exists: true },
       'availability.availableRooms': { $exists: true }
     });

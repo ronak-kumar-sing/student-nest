@@ -93,9 +93,9 @@ export default function BookingsPage() {
       const monthlyRent = booking.financial?.monthlyRent || booking.monthlyRent || 0;
       const securityDeposit = booking.financial?.securityDeposit || booking.securityDeposit || 0;
       const maintenanceCharges = booking.financial?.maintenanceCharges || booking.maintenanceCharges || 0;
-      
+
       const confirmed = confirm(`Confirm payment of ₹${paymentAmount.toLocaleString()} for this booking?\n\nThis includes:\n- Monthly Rent: ₹${monthlyRent.toLocaleString()}\n- Security Deposit: ₹${securityDeposit.toLocaleString()}\n- Maintenance: ₹${maintenanceCharges.toLocaleString()}`);
-      
+
       if (!confirmed) return;
 
       // Process payment using the payment API
@@ -117,23 +117,23 @@ export default function BookingsPage() {
     const createdAt = new Date(booking.timeline?.createdAt || booking.createdAt);
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-    
-    return booking.status?.toLowerCase() === 'pending' && 
-           booking.financial?.paymentStatus !== 'paid' && 
-           createdAt < twoDaysAgo;
+
+    return booking.status?.toLowerCase() === 'pending' &&
+      booking.financial?.paymentStatus !== 'paid' &&
+      createdAt < twoDaysAgo;
   };
 
   const getTimeRemaining = (booking) => {
     const createdAt = new Date(booking.timeline?.createdAt || booking.createdAt);
     const expiryTime = new Date(createdAt.getTime() + (2 * 24 * 60 * 60 * 1000)); // 2 days from creation
     const now = new Date();
-    
+
     if (now >= expiryTime) return 'Expired';
-    
+
     const remaining = expiryTime - now;
     const hours = Math.floor(remaining / (1000 * 60 * 60));
     const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m remaining`;
     } else {
@@ -319,37 +319,37 @@ export default function BookingsPage() {
                         <div className="flex items-center text-gray-600">
                           <DollarSign className="w-4 h-4 mr-2" />
                           <span className="text-sm">
-                            Payment: {(booking.financial?.paymentStatus || booking.paymentStatus) === 'paid' ? 'Paid' : 'Pending'} 
+                            Payment: {(booking.financial?.paymentStatus || booking.paymentStatus) === 'paid' ? 'Paid' : 'Pending'}
                             {(booking.financial?.totalAmount || booking.totalAmount) && ` - ₹${(booking.financial?.totalAmount || booking.totalAmount).toLocaleString()}`}
                           </span>
                         </div>
                       )}
 
                       {/* Payment Deadline */}
-                      {booking.status?.toLowerCase() === 'pending' && 
-                       (booking.financial?.paymentStatus || booking.paymentStatus) !== 'paid' && (
-                        <div className="flex items-center text-orange-600">
-                          <AlertTriangle className="w-4 h-4 mr-2" />
-                          <span className="text-sm font-medium">
-                            {getTimeRemaining(booking)}
-                          </span>
-                        </div>
-                      )}
+                      {booking.status?.toLowerCase() === 'pending' &&
+                        (booking.financial?.paymentStatus || booking.paymentStatus) !== 'paid' && (
+                          <div className="flex items-center text-orange-600">
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            <span className="text-sm font-medium">
+                              {getTimeRemaining(booking)}
+                            </span>
+                          </div>
+                        )}
                     </div>
 
                     {/* Notes */}
                     {/* Payment Warning */}
-                    {booking.status?.toLowerCase() === 'pending' && 
-                     (booking.financial?.paymentStatus || booking.paymentStatus) !== 'paid' && (
-                      <div className={`mt-4 p-3 rounded-lg ${isBookingExpired(booking) ? 'bg-red-50 border border-red-200' : 'bg-orange-50 border border-orange-200'}`}>
-                        <p className={`text-sm font-medium ${isBookingExpired(booking) ? 'text-red-800' : 'text-orange-800'}`}>
-                          {isBookingExpired(booking) 
-                            ? '⚠️ This booking has expired and will be removed soon!'
-                            : `💰 Complete payment within ${getTimeRemaining(booking)} to confirm your booking.`
-                          }
-                        </p>
-                      </div>
-                    )}
+                    {booking.status?.toLowerCase() === 'pending' &&
+                      (booking.financial?.paymentStatus || booking.paymentStatus) !== 'paid' && (
+                        <div className={`mt-4 p-3 rounded-lg ${isBookingExpired(booking) ? 'bg-red-50 border border-red-200' : 'bg-orange-50 border border-orange-200'}`}>
+                          <p className={`text-sm font-medium ${isBookingExpired(booking) ? 'text-red-800' : 'text-orange-800'}`}>
+                            {isBookingExpired(booking)
+                              ? '⚠️ This booking has expired and will be removed soon!'
+                              : `💰 Complete payment within ${getTimeRemaining(booking)} to confirm your booking.`
+                            }
+                          </p>
+                        </div>
+                      )}
 
                     {/* Notes */}
                     {(booking.notes?.student || booking.notes) && (
@@ -372,17 +372,17 @@ export default function BookingsPage() {
                     </button>
 
                     {/* Payment Button */}
-                    {booking.status?.toLowerCase() === 'pending' && 
-                     (booking.financial?.paymentStatus || booking.paymentStatus) !== 'paid' && 
-                     !isBookingExpired(booking) && (
-                      <button
-                        onClick={() => handlePayment(booking)}
-                        className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        Pay Now
-                      </button>
-                    )}
+                    {booking.status?.toLowerCase() === 'pending' &&
+                      (booking.financial?.paymentStatus || booking.paymentStatus) !== 'paid' &&
+                      !isBookingExpired(booking) && (
+                        <button
+                          onClick={() => handlePayment(booking)}
+                          className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Pay Now
+                        </button>
+                      )}
 
                     {/* Cancel Button */}
                     {booking.status?.toLowerCase() === 'pending' && !isBookingExpired(booking) && (

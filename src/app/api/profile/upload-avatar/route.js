@@ -53,8 +53,12 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
+    // Convert File to Buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     // Upload to Cloudinary
-    const uploadResult = await uploadImage(file, {
+    const uploadResult = await uploadImage(buffer, {
       folder: `student-nest/profile-photos/${decoded.userId}`,
       tags: ['profile', 'avatar', 'user'],
       transformation: [

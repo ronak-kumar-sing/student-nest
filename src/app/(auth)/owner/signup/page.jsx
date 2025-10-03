@@ -56,7 +56,7 @@ export default function OwnerSignupPage() {
         // Check if verification is required
         if (data.nextStep === 'verification') {
           toast.info("Please complete verification to activate all features.")
-          window.location.href = "/owner/verify"
+          window.location.href = "/verification"
         } else {
           // Redirect to home page
           window.location.href = "/dashboard"

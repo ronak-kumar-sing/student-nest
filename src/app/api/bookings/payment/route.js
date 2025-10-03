@@ -50,7 +50,7 @@ export async function POST(request) {
     // Verify the booking belongs to the authenticated user
     const bookingStudentId = booking.student?._id?.toString() || booking.student?.toString();
     const authUserId = (decoded.userId || decoded.id).toString();
-    
+
     if (bookingStudentId !== authUserId) {
       return NextResponse.json({
         success: false,

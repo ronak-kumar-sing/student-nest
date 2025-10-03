@@ -64,8 +64,8 @@ const ReviewItem = ({ review }) => {
               <Star
                 key={star}
                 className={`w-4 h-4 ${star <= review.rating
-                    ? 'fill-yellow-400 text-yellow-400'
-                    : 'text-zinc-600'
+                  ? 'fill-yellow-400 text-yellow-400'
+                  : 'text-zinc-600'
                   }`}
               />
             ))}
@@ -138,8 +138,8 @@ const ReviewItem = ({ review }) => {
           <button
             onClick={() => setIsHelpful(!isHelpful)}
             className={`flex items-center gap-1 text-sm transition-colors ${isHelpful
-                ? 'text-blue-400 hover:text-blue-300'
-                : 'text-zinc-500 hover:text-zinc-400'
+              ? 'text-blue-400 hover:text-blue-300'
+              : 'text-zinc-500 hover:text-zinc-400'
               }`}
           >
             <ThumbsUp className={`w-4 h-4 ${isHelpful ? 'fill-current' : ''}`} />
@@ -239,7 +239,7 @@ const WriteReviewModal = ({ room, isOpen, onClose, onReviewSubmit }) => {
 
       // Call the callback with the review data to handle API submission
       await onReviewSubmit(reviewData)
-      
+
       showToast('Review submitted successfully!', 'success')
 
       // Reset form
@@ -317,8 +317,8 @@ const WriteReviewModal = ({ room, isOpen, onClose, onReviewSubmit }) => {
                 >
                   <Star
                     className={`w-8 h-8 ${star <= rating
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-zinc-600 hover:text-zinc-500'
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-zinc-600 hover:text-zinc-500'
                       }`}
                   />
                 </button>
@@ -354,8 +354,8 @@ const WriteReviewModal = ({ room, isOpen, onClose, onReviewSubmit }) => {
                       >
                         <Star
                           className={`w-5 h-5 ${star <= categories[category]
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-zinc-600 hover:text-zinc-500'
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-zinc-600 hover:text-zinc-500'
                             }`}
                         />
                       </button>
@@ -494,8 +494,8 @@ const ReviewsSection = ({ reviews, rating, totalReviews, room, onReviewSubmit })
                 <Star
                   key={star}
                   className={`w-5 h-5 ${star <= Math.floor(rating)
-                      ? 'fill-yellow-400 text-yellow-400'
-                      : 'text-zinc-600'
+                    ? 'fill-yellow-400 text-yellow-400'
+                    : 'text-zinc-600'
                     }`}
                 />
               ))}

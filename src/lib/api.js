@@ -40,9 +40,14 @@ class ApiClient {
     const token = this.getToken();
 
     const defaultHeaders = {
-      'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
     };
+
+    // Only add Content-Type for non-FormData requests
+    const isFormData = options.body instanceof FormData || options.isFormData;
+    if (!isFormData) {
+      defaultHeaders['Content-Type'] = 'application/json';
+    }
 
     const config = {
       headers: defaultHeaders,
@@ -53,7 +58,8 @@ class ApiClient {
       },
     };
 
-    if (config.body && typeof config.body === 'object' && !config.isFormData) {
+    // Only stringify body if it's not FormData and is an object
+    if (config.body && typeof config.body === 'object' && !isFormData) {
       config.body = JSON.stringify(config.body);
     }
 

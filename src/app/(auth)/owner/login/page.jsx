@@ -40,7 +40,7 @@ export default function OwnerLoginPage() {
           toast.info("Please complete your verification process.")
           localStorage.setItem("token", data.accessToken)
           localStorage.setItem("user", JSON.stringify(user))
-          window.location.href = "/owner/verify"
+          window.location.href = "/verification"
         } else if (data.user.verification?.status === "verified" || data.user.isActive) {
           toast.success("Welcome back!")
           localStorage.setItem("token", data.accessToken)

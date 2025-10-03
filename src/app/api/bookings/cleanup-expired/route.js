@@ -22,11 +22,11 @@ export async function POST(request) {
 
     // Update expired bookings to cancelled
     const expiredBookingIds = expiredBookings.map(booking => booking._id);
-    
+
     if (expiredBookingIds.length > 0) {
       await Booking.updateMany(
         { _id: { $in: expiredBookingIds } },
-        { 
+        {
           status: 'cancelled',
           'timeline.cancelledAt': new Date(),
           'timeline.cancellationReason': 'Expired due to non-payment within 48 hours'

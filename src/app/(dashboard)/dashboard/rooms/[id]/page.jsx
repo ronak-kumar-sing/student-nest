@@ -416,7 +416,7 @@ export default function RoomDetailsPage() {
     try {
       // Submit review to backend
       const response = await apiClient.createReview(reviewData);
-      
+
       if (response.success) {
         // Refresh reviews from backend to ensure consistency
         try {
@@ -567,7 +567,7 @@ export default function RoomDetailsPage() {
         setIsLoading(true);
         const roomData = await roomAPI.getRoomById(id);
         setRoom(roomData);
-        
+
         // Fetch reviews from backend API
         try {
           const reviewsResponse = await apiClient.getReviews({ propertyId: id });

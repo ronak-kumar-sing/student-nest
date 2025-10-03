@@ -11,13 +11,13 @@ export async function GET(request) {
 
     if (error) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/owner/verify?error=${encodeURIComponent('DigiLocker authentication failed')}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/verification?error=${encodeURIComponent('DigiLocker authentication failed')}`
       );
     }
 
     if (!code || !state) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/owner/verify?error=${encodeURIComponent('Invalid callback parameters')}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/verification?error=${encodeURIComponent('Invalid callback parameters')}`
       );
     }
 
@@ -27,7 +27,7 @@ export async function GET(request) {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString());
     } catch (error) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/owner/verify?error=${encodeURIComponent('Invalid state parameter')}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/verification?error=${encodeURIComponent('Invalid state parameter')}`
       );
     }
 
@@ -40,7 +40,7 @@ export async function GET(request) {
     const owner = await Owner.findById(userId);
     if (!owner) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/owner/verify?error=${encodeURIComponent('User not found')}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/verification?error=${encodeURIComponent('User not found')}`
       );
     }
 
@@ -76,7 +76,7 @@ export async function GET(request) {
       }, 3000); // Auto-approve after 3 seconds
 
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/owner/verify?success=${encodeURIComponent('DigiLocker verification initiated successfully')}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/verification?success=${encodeURIComponent('DigiLocker verification initiated successfully')}`
       );
     }
 
@@ -84,13 +84,13 @@ export async function GET(request) {
     // This is where you would implement the real DigiLocker API integration
 
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/owner/verify?error=${encodeURIComponent('Real DigiLocker integration not implemented')}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/verification?error=${encodeURIComponent('Real DigiLocker integration not implemented')}`
     );
 
   } catch (error) {
     console.error('DigiLocker callback error:', error);
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/owner/verify?error=${encodeURIComponent('DigiLocker verification failed')}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/verification?error=${encodeURIComponent('DigiLocker verification failed')}`
     );
   }
 }
