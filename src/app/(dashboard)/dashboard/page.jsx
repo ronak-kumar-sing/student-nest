@@ -4,13 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Home,
-  MessageSquare,
-  Calendar,
   Bell,
   TrendingUp,
   MapPin,
-  Star,
   Clock
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -63,6 +59,8 @@ export default function DashboardPage() {
             Find your perfect accommodation near top universities
           </p>
         </div> */}
+
+
 
         {/* Room Browser Component */}
         <RoomBrowser />

@@ -23,8 +23,6 @@ import {
   Heart,
   Share2,
   MessageCircle,
-  Phone,
-  Mail,
   Home,
   BedDouble,
   ChevronLeft,
@@ -51,9 +49,40 @@ const getInitials = (name) => {
     .slice(0, 2);
 };
 
-// Mock API service
+import apiClient from '@/lib/api';
+
+// Room API service using actual backend
 const roomAPI = {
   async getRoomById(id) {
+    try {
+      // Validate MongoDB ObjectId format (24 character hex string)
+      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+        console.log('Invalid room ID format, using mock data');
+        return await this.getMockRoom(id);
+      }
+
+      const response = await apiClient.getRoomById(id);
+      if (response.success) {
+        const roomData = response.data.data || response.data;
+        // Ensure the room has the required structure
+        return {
+          ...roomData,
+          reviews: roomData.reviews || [],
+          owner: {
+            ...roomData.owner,
+            id: roomData.owner?.id || roomData.owner?._id
+          }
+        };
+      }
+      throw new Error(response.error || 'Failed to fetch room');
+    } catch (error) {
+      console.error('Error fetching room:', error);
+      // Return mock data as fallback
+      return await this.getMockRoom(id);
+    }
+  },
+
+  async getMockRoom(id) {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 800));
 
@@ -283,9 +312,25 @@ const PriceNegotiationModal = ({ room, isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
-    console.log('Negotiation submitted:', { offerPrice, message });
-    onClose();
+  const handleSubmit = async () => {
+    try {
+      // In a real app, this would call an API to submit the price negotiation
+      console.log('Negotiation submitted:', {
+        roomId: room?.id,
+        offerPrice,
+        message,
+        originalPrice: room?.price
+      });
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      alert('Price negotiation request sent to owner!');
+      onClose();
+    } catch (error) {
+      console.error('Negotiation error:', error);
+      alert('Failed to send negotiation request');
+    }
   };
 
   return (
@@ -364,9 +409,148 @@ export default function RoomDetailsPage() {
   const [showNegotiationModal, setShowNegotiationModal] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [hasExistingBooking, setHasExistingBooking] = useState(false);
 
-  const handleReviewSubmit = (newReview) => {
-    setReviews(prev => [newReview, ...prev]);
+  const handleReviewSubmit = async (reviewData) => {
+    try {
+      // Submit review to backend
+      const response = await apiClient.createReview(reviewData);
+      
+      if (response.success) {
+        // Refresh reviews from backend to ensure consistency
+        try {
+          const reviewsResponse = await apiClient.getReviews({ propertyId: room.id });
+          if (reviewsResponse.success && reviewsResponse.data) {
+            // Transform API review format to component format
+            const transformedReviews = (reviewsResponse.data.reviews || []).map(apiReview => ({
+              id: apiReview.id,
+              userName: apiReview.student?.name || 'Anonymous',
+              rating: apiReview.rating?.overall || 0,
+              comment: apiReview.content?.comment || '',
+              date: apiReview.dates?.formattedDate || 'Recent',
+              verified: apiReview.verification?.isVerified || false,
+              categories: apiReview.rating?.categories || {},
+              helpfulCount: apiReview.interaction?.helpfulCount || 0,
+              stayDuration: apiReview.content?.stayDuration || null
+            }));
+            setReviews(transformedReviews);
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing reviews:', refreshError);
+          // Fallback: add the review to local state
+          const newReview = {
+            id: response.data._id || Date.now(),
+            userName: currentUser?.fullName || 'You',
+            rating: reviewData.overallRating,
+            date: 'Just now',
+            comment: reviewData.comment,
+            verified: false,
+            categories: reviewData.categories,
+            helpfulCount: 0,
+            stayDuration: reviewData.stayDuration
+          };
+          setReviews(prev => [newReview, ...prev]);
+        }
+      } else {
+        throw new Error(response.error || 'Failed to submit review');
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Failed to submit review: ' + error.message);
+    }
+  };
+
+  const handleBookNow = async () => {
+    if (!currentUser) {
+      alert('Please login to book this room');
+      return;
+    }
+
+    if (!selectedDate) {
+      alert('Please select a move-in date');
+      return;
+    }
+
+    try {
+      setBookingLoading(true);
+      const bookingData = {
+        roomId: room.id,
+        moveInDate: selectedDate,
+        duration: 12, // Default 12 months
+        agreementType: 'monthly',
+        notes: 'Booking via room details page'
+      };
+
+      const response = await apiClient.createBooking(bookingData);
+
+      if (response.success) {
+        alert('Booking request sent successfully! Redirecting to your bookings page...');
+        // Add a small delay to let user see the success message, then redirect
+        setTimeout(() => {
+          router.push('/dashboard/bookings');
+        }, 1500);
+      } else {
+        // Check if it's a duplicate booking error
+        const errorMessage = response.error || 'Failed to create booking';
+        if (errorMessage.toLowerCase().includes('already have') && errorMessage.toLowerCase().includes('booking')) {
+          alert('You already have a booking for this room! Taking you to your bookings page where you can view all your bookings.');
+          setTimeout(() => {
+            router.push('/dashboard/bookings');
+          }, 1500);
+        } else {
+          alert(errorMessage);
+        }
+      }
+    } catch (error) {
+      console.error('Booking error:', error);
+      const errorMessage = error.message || 'Failed to create booking';
+
+      // Check if it's a duplicate booking error in the catch block too
+      if (errorMessage.toLowerCase().includes('already have') && errorMessage.toLowerCase().includes('booking')) {
+        alert('You already have a booking for this room! Taking you to your bookings page where you can view all your bookings.');
+        setTimeout(() => {
+          router.push('/dashboard/bookings');
+        }, 1500);
+      } else {
+        alert(errorMessage);
+      }
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  const handleSaveRoom = async () => {
+    if (!currentUser) {
+      alert('Please login to save rooms');
+      return;
+    }
+
+    try {
+      let response;
+      if (isFavorited) {
+        // Remove from saved
+        response = await apiClient.unsaveRoom(room.id);
+        if (response.success) {
+          setIsFavorited(false);
+          alert('Room removed from favorites');
+        }
+      } else {
+        // Add to saved
+        response = await apiClient.saveRoom(room.id);
+        if (response.success) {
+          setIsFavorited(true);
+          alert('Room saved to your favorites!');
+        }
+      }
+
+      if (!response.success) {
+        alert(response.error || 'Failed to update saved room');
+      }
+    } catch (error) {
+      console.error('Save room error:', error);
+      alert('Failed to save room');
+    }
   };
 
   useEffect(() => {
@@ -383,7 +567,33 @@ export default function RoomDetailsPage() {
         setIsLoading(true);
         const roomData = await roomAPI.getRoomById(id);
         setRoom(roomData);
-        setReviews(roomData.reviews);
+        
+        // Fetch reviews from backend API
+        try {
+          const reviewsResponse = await apiClient.getReviews({ propertyId: id });
+          if (reviewsResponse.success && reviewsResponse.data) {
+            // Transform API review format to component format
+            const transformedReviews = (reviewsResponse.data.reviews || []).map(apiReview => ({
+              id: apiReview.id,
+              userName: apiReview.student?.name || 'Anonymous',
+              rating: apiReview.rating?.overall || 0,
+              comment: apiReview.content?.comment || '',
+              date: apiReview.dates?.formattedDate || 'Recent',
+              verified: apiReview.verification?.isVerified || false,
+              categories: apiReview.rating?.categories || {},
+              helpfulCount: apiReview.interaction?.helpfulCount || 0,
+              stayDuration: apiReview.content?.stayDuration || null
+            }));
+            setReviews(transformedReviews);
+          } else {
+            // Fallback to mock reviews from room data
+            setReviews(roomData.reviews || []);
+          }
+        } catch (reviewsError) {
+          console.error('Error fetching reviews:', reviewsError);
+          // Fallback to mock reviews from room data
+          setReviews(roomData.reviews || []);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -395,6 +605,34 @@ export default function RoomDetailsPage() {
       fetchRoom();
     }
   }, [id]);
+
+  // Check if room is saved and if user has existing booking when user and room are both loaded
+  useEffect(() => {
+    const checkRoomStatus = async () => {
+      if (currentUser && room?.id) {
+        try {
+          // Check if room is saved
+          const isSaved = await apiClient.isRoomSaved(room.id);
+          setIsFavorited(isSaved);
+
+          // Check if user has existing booking for this room
+          const bookingsResponse = await apiClient.getBookings();
+          if (bookingsResponse.success) {
+            const existingBooking = bookingsResponse.data?.bookings?.find(booking =>
+              (booking.room?.id === room.id || booking.roomId === room.id) &&
+              booking.status?.toLowerCase() !== 'cancelled' &&
+              booking.status?.toLowerCase() !== 'rejected'
+            );
+            setHasExistingBooking(!!existingBooking);
+          }
+        } catch (error) {
+          console.error('Error checking room status:', error);
+        }
+      }
+    };
+
+    checkRoomStatus();
+  }, [currentUser, room?.id]);
 
   const handleFavoriteClick = () => {
     setIsFavorited(!isFavorited);
@@ -501,6 +739,12 @@ export default function RoomDetailsPage() {
                   {room.accommodationType && (
                     <Badge variant={room.accommodationType === 'pg' ? 'secondary' : 'outline'}>
                       {room.accommodationType === 'pg' ? 'PG Accommodation' : 'Private Room'}
+                    </Badge>
+                  )}
+                  {hasExistingBooking && (
+                    <Badge variant="secondary" className="bg-green-900/50 text-green-400 border-green-700">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      You Have Booked This
                     </Badge>
                   )}
                 </div>
@@ -726,9 +970,22 @@ export default function RoomDetailsPage() {
                 </div>
 
                 <div className="space-y-3 mb-6">
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 rounded-xl font-semibold">
-                    Book Now - Pay Later
-                  </Button>
+                  {hasExistingBooking ? (
+                    <Button
+                      onClick={() => router.push('/dashboard/bookings')}
+                      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-4 rounded-xl font-semibold"
+                    >
+                      View My Booking
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleBookNow}
+                      disabled={bookingLoading || !selectedDate}
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {bookingLoading ? 'Processing...' : 'Book Now - Pay Later'}
+                    </Button>
+                  )}
 
                   <Button
                     onClick={() => setShowNegotiationModal(true)}
@@ -758,7 +1015,7 @@ export default function RoomDetailsPage() {
 
                   <Button
                     variant="outline"
-                    onClick={handleFavoriteClick}
+                    onClick={handleSaveRoom}
                     className={`w-full py-4 rounded-xl font-semibold ${isFavorited
                       ? 'border-blue-500 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
                       : 'border-zinc-600 text-zinc-300 hover:bg-zinc-800'
@@ -858,17 +1115,9 @@ export default function RoomDetailsPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1 border-gray-600 hover:bg-gray-700">
-                    <Phone size={16} className="mr-2" />
-                    Call
-                  </Button>
-                  <Button size="sm" variant="outline" className="flex-1 border-gray-600 hover:bg-gray-700">
-                    <Mail size={16} className="mr-2" />
-                    Email
-                  </Button>
-                  <Button size="sm" variant="outline" className="flex-1 border-gray-600 hover:bg-gray-700">
+                  <Button size="sm" variant="outline" className="w-full border-gray-600 hover:bg-gray-700">
                     <MessageCircle size={16} className="mr-2" />
-                    Chat
+                    Chat with Owner
                   </Button>
                 </div>
               </CardContent>

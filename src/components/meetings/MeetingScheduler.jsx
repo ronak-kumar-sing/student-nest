@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar, Clock, Video, MapPin, Send, X } from 'lucide-react';
-import { scheduleMeeting } from '@/lib/api';
+import apiClient from '@/lib/api';
 
 function MeetingScheduler({ propertyId, ownerId, onScheduleSuccess, trigger }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,15 +33,19 @@ function MeetingScheduler({ propertyId, ownerId, onScheduleSuccess, trigger }) {
     setIsSubmitting(true);
 
     try {
+      // Create ISO date for the preferred meeting time
+      const meetingDateTime = new Date(`${formData.selectedDate}T${formData.selectedTime}`);
+
       const meetingData = {
         propertyId,
-        meetingType: formData.meetingType,
-        requestedDate: formData.selectedDate,
-        requestedTime: formData.selectedTime,
-        notes: formData.notes
+        ownerId,
+        preferredDates: [meetingDateTime.toISOString()],
+        meetingType: formData.meetingType || 'physical',
+        notes: formData.notes,
+        purpose: 'property_viewing'
       };
 
-      const response = await scheduleMeeting(meetingData);
+      const response = await apiClient.createMeeting(meetingData);
 
       if (response.success) {
         setIsOpen(false);

@@ -6,7 +6,8 @@ import MessageList from "@/components/messaging/MessageList";
 import ChatWindow from "@/components/messaging/ChatWindow";
 import NegotiationPanel from "@/components/messaging/NegotiationPanel";
 import GoogleMeetButton from "@/components/messaging/GoogleMeetButton";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
+import apiClient from "@/lib/api";
 
 export default function MessagesPage() {
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -15,114 +16,72 @@ export default function MessagesPage() {
   const [showNegotiation, setShowNegotiation] = useState(false);
   const [userType, setUserType] = useState("student"); // Will be from auth context
 
-  // Sample conversations data - in real app, this would come from API
+  // Load conversations data from API
   useEffect(() => {
-    const sampleConversations = [
-      {
-        id: 1,
-        participant: {
-          id: "user_1",
-          name: "Priya Sharma",
-          avatar: "/avatars/priya.jpg",
-          type: "owner",
-          isOnline: true,
-          lastSeen: new Date()
-        },
-        property: {
-          id: "prop_1",
-          title: "2BHK Apartment near IIT Delhi",
-          rent: 25000,
-          location: "Hauz Khas, New Delhi",
-          images: ["/properties/prop1.jpg"],
-          securityDeposit: 50000
-        },
-        lastMessage: {
-          id: "msg_1",
-          content: "Is the room still available for viewing?",
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          senderId: "user_1",
-          type: "text"
-        },
-        unreadCount: 2,
-        isPinned: false,
-        isMuted: false,
-        negotiation: {
-          amount: 22000,
-          status: "pending",
-          history: []
-        },
-        meeting: {
-          meetingId: "meet_1",
-          meetingUrl: "https://meet.google.com/abc-defg-hij",
-          scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
-          status: "scheduled"
-        }
-      },
-      {
-        id: 2,
-        participant: {
-          id: "user_2",
-          name: "Rahul Properties",
-          avatar: "/avatars/rahul.jpg",
-          type: "owner",
-          isOnline: false,
-          lastSeen: new Date(Date.now() - 24 * 60 * 60 * 1000)
-        },
-        property: {
-          id: "prop_2",
-          title: "Single Room in Malviya Nagar",
-          rent: 18000,
-          location: "Malviya Nagar, New Delhi",
-          images: ["/properties/prop2.jpg"],
-          securityDeposit: 36000
-        },
-        lastMessage: {
-          id: "msg_2",
-          content: "The security deposit is negotiable...",
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          senderId: "user_2",
-          type: "text"
-        },
-        unreadCount: 0,
-        isPinned: true,
-        isMuted: false
-      },
-      {
-        id: 3,
-        participant: {
-          id: "user_3",
-          name: "Sneha Gupta",
-          avatar: "/avatars/sneha.jpg",
-          type: "student",
-          isOnline: true,
-          lastSeen: new Date()
-        },
-        property: {
-          id: "prop_3",
-          title: "Studio Apartment in Lajpat Nagar",
-          rent: 15000,
-          location: "Lajpat Nagar, New Delhi",
-          images: ["/properties/prop3.jpg"],
-          securityDeposit: 30000
-        },
-        lastMessage: {
-          id: "msg_3",
-          content: "Can we schedule a video call?",
-          timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-          senderId: "user_3",
-          type: "text"
-        },
-        unreadCount: 1,
-        isPinned: false,
-        isMuted: false
-      }
-    ];
-
-    setTimeout(() => {
-      setConversations(sampleConversations);
-      setLoading(false);
-    }, 500);
+    loadConversations();
   }, []);
+
+  const loadConversations = async () => {
+    try {
+      setLoading(true);
+
+      // Check if user is authenticated
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!token) {
+        console.log('No authentication token found');
+        setConversations([]);
+        return;
+      }
+
+      // Try to load meetings which can serve as conversation starters
+      const meetingsResponse = await apiClient.getMeetings();
+
+      if (meetingsResponse.success && meetingsResponse.data.meetings) {
+        // Transform meetings into conversation format
+        const conversationsFromMeetings = meetingsResponse.data.meetings.map(meeting => ({
+          id: meeting._id,
+          participant: {
+            id: meeting.student._id || meeting.owner._id,
+            name: meeting.student?.fullName || meeting.owner?.fullName || 'Unknown User',
+            avatar: meeting.student?.profilePhoto || meeting.owner?.profilePhoto || '/default-avatar.png',
+            type: userType === 'student' ? 'owner' : 'student',
+            isOnline: false,
+            lastSeen: new Date(meeting.updatedAt)
+          },
+          property: {
+            id: meeting.property._id,
+            title: meeting.property.title,
+            rent: meeting.property.price,
+            location: meeting.property.location?.address || 'Location not specified',
+            images: meeting.property.images || [],
+            securityDeposit: meeting.property.securityDeposit || meeting.property.price
+          },
+          lastMessage: {
+            id: `msg_${meeting._id}`,
+            content: meeting.studentNotes || `Meeting scheduled for ${meeting.preferredDates?.[0] || 'TBD'}`,
+            timestamp: new Date(meeting.updatedAt),
+            senderId: meeting.student._id,
+            type: "meeting"
+          },
+          unreadCount: meeting.status === 'pending' ? 1 : 0,
+          isPinned: false,
+          isMuted: false,
+          meetingStatus: meeting.status,
+          meetingData: meeting
+        }));
+
+        setConversations(conversationsFromMeetings);
+      } else {
+        // No meetings found - show empty state
+        setConversations([]);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+      setConversations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Sample messages for selected conversation
   const getMessagesForConversation = (conversationId) => {

@@ -20,7 +20,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import MeetingStatusCard from '@/components/meetings/MeetingStatusCard';
-import { getStudentMeetings } from '@/lib/api';
+import apiClient from '@/lib/api';
 
 function VisitingSchedulePage() {
   const [meetings, setMeetings] = useState([]);
@@ -44,12 +44,23 @@ function VisitingSchedulePage() {
   const fetchMeetings = async () => {
     setLoading(true);
     try {
-      const response = await getStudentMeetings(studentId);
+      // Check if user is authenticated
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!token) {
+        console.log('No authentication token found');
+        setMeetings([]);
+        return;
+      }
+
+      const response = await apiClient.getMeetings({ type: 'sent' });
       if (response.success) {
-        setMeetings(response.data);
+        setMeetings(response.data.meetings || []);
+      } else {
+        setMeetings([]);
       }
     } catch (error) {
       console.error('Error fetching meetings:', error);
+      setMeetings([]);
     } finally {
       setLoading(false);
     }

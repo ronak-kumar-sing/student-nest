@@ -6,10 +6,13 @@ import { Button } from '@/components/ui/button';
 import RoomCard from '../room/RoomCard';
 import FilterComponent from '../filters/FilterComponent';
 import SplitText from '../animations/SplitText';
-import { SAMPLE_ROOMS } from '../../utils/sampleData';
+import apiClient from '@/lib/api';
+import { Loader2 } from 'lucide-react';
 
 function RoomBrowser() {
-  const [displayedRooms, setDisplayedRooms] = useState(SAMPLE_ROOMS.slice(0, 6));
+  const [displayedRooms, setDisplayedRooms] = useState([]);
+  const [allRooms, setAllRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [priceRange, setPriceRange] = useState([2000, 25000]);
   const [availabilityFilter, setAvailabilityFilter] = useState({
     availableNow: true,
@@ -38,6 +41,34 @@ function RoomBrowser() {
   const [sortBy, setSortBy] = useState('default');
   const [areaRange, setAreaRange] = useState([50, 500]);
 
+  // Load rooms from API
+  const loadRooms = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.getRooms();
+      if (response.success) {
+        const rooms = response.data.rooms || [];
+        setAllRooms(rooms);
+        setDisplayedRooms(rooms.slice(0, 6));
+      } else {
+        console.error('Failed to load rooms:', response.error);
+        setAllRooms([]);
+        setDisplayedRooms([]);
+      }
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+      setAllRooms([]);
+      setDisplayedRooms([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load rooms on component mount
+  useEffect(() => {
+    loadRooms();
+  }, []);
+
   const handleCardClick = (roomId) => {
     console.log('Navigating to room:', roomId);
     // Navigate to room details page
@@ -51,7 +82,7 @@ function RoomBrowser() {
 
   // Comprehensive filter function
   const applyFilters = () => {
-    let filtered = [...SAMPLE_ROOMS];
+    let filtered = [...allRooms];
 
     // Price filter
     filtered = filtered.filter(room =>
@@ -206,7 +237,7 @@ function RoomBrowser() {
             areaRange={areaRange}
             setAreaRange={setAreaRange}
             displayedRooms={displayedRooms.length}
-            totalRooms={SAMPLE_ROOMS.length}
+            totalRooms={allRooms.length}
             clearAllFilters={clearAllFilters}
           />
         </div>
@@ -222,45 +253,57 @@ function RoomBrowser() {
             </div>
           </div>
 
-          {/* Rooms Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {displayedRooms.map(room => (
-              <RoomCard
-                key={room.id}
-                room={room}
-                onCardClick={handleCardClick}
-                onFavorite={handleFavorite}
-                showDistance={true}
-                className="transform hover:scale-[1.02] transition-transform duration-300"
-              />
-            ))}
-          </div>
-
-          {/* No Results State */}
-          {displayedRooms.length === 0 && (
-            <Card className="bg-gray-800/50 border-gray-700">
-              <CardContent className="text-center py-12">
-                <div className="text-white/60 text-lg mb-4">No rooms match your current filters</div>
-                <Button
-                  onClick={clearAllFilters}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105"
-                >
-                  Clear All Filters
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Load More Button */}
-          {displayedRooms.length < SAMPLE_ROOMS.length && displayedRooms.length > 0 && (
-            <div className="text-center mt-8">
-              <Button
-                onClick={() => setDisplayedRooms(SAMPLE_ROOMS)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105"
-              >
-                Load More Rooms
-              </Button>
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+                <p className="text-gray-400">Loading available rooms...</p>
+              </div>
             </div>
+          ) : (
+            <>
+              {/* Rooms Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {displayedRooms.map(room => (
+                  <RoomCard
+                    key={room.id}
+                    room={room}
+                    onCardClick={handleCardClick}
+                    onFavorite={handleFavorite}
+                    showDistance={true}
+                    className="transform hover:scale-[1.02] transition-transform duration-300"
+                  />
+                ))}
+              </div>
+
+              {/* No Results State */}
+              {displayedRooms.length === 0 && (
+                <Card className="bg-gray-800/50 border-gray-700">
+                  <CardContent className="text-center py-12">
+                    <div className="text-white/60 text-lg mb-4">No rooms match your current filters</div>
+                    <Button
+                      onClick={clearAllFilters}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105"
+                    >
+                      Clear All Filters
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Load More Button */}
+              {displayedRooms.length < allRooms.length && displayedRooms.length > 0 && (
+                <div className="text-center mt-8">
+                  <Button
+                    onClick={() => setDisplayedRooms(allRooms)}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105"
+                  >
+                    Load More Rooms
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -150,6 +150,16 @@ const roomSchema = new mongoose.Schema({
     availableFrom: {
       type: Date,
       default: Date.now
+    },
+    totalRooms: {
+      type: Number,
+      default: 1,
+      min: 1
+    },
+    availableRooms: {
+      type: Number,
+      default: 1,
+      min: 0
     }
   },
 

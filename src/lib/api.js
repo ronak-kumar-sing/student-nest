@@ -1,8 +1,8 @@
-// API utility functions for authentication
+// Complete API utility for StudentNest Frontend-Backend Integration
 
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://your-domain.com/api'
-  : 'http://localhost:3000/api';
+  ? 'https://your-domain.com'
+  : 'http://localhost:3000';
 
 class ApiClient {
   constructor() {
@@ -14,13 +14,14 @@ class ApiClient {
     this.token = token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token);
+      localStorage.setItem('accessToken', token);
     }
   }
 
   getToken() {
     if (this.token) return this.token;
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('token');
+      return localStorage.getItem('accessToken') || localStorage.getItem('token');
     }
     return null;
   }
@@ -29,23 +30,30 @@ class ApiClient {
     this.token = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
     }
   }
 
   async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
+    const url = `${this.baseURL}/api${endpoint}`;
     const token = this.getToken();
 
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-      ...options,
+    const defaultHeaders = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
     };
 
-    if (config.body && typeof config.body === 'object') {
+    const config = {
+      headers: defaultHeaders,
+      ...options,
+      headers: {
+        ...defaultHeaders,
+        ...options.headers,
+      },
+    };
+
+    if (config.body && typeof config.body === 'object' && !config.isFormData) {
       config.body = JSON.stringify(config.body);
     }
 
@@ -54,12 +62,19 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle token expiry
+        if (response.status === 401) {
+          this.clearToken();
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+        }
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
 
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error('API request failed:', endpoint, error);
       throw error;
     }
   }
@@ -326,6 +341,334 @@ class ApiClient {
     return this.request('/profile/owner', {
       method: 'DELETE',
     });
+  }
+
+  // Dashboard methods
+  async getDashboard() {
+    return this.request('/dashboard');
+  }
+
+  // Room methods
+  async getRooms(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/rooms${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getRoomById(id) {
+    return this.request(`/rooms/${id}`);
+  }
+
+  // Saved rooms methods
+  async getSavedRooms() {
+    return this.request('/saved-rooms');
+  }
+
+  async saveRoom(roomId) {
+    return this.request('/saved-rooms', {
+      method: 'POST',
+      body: { roomId },
+    });
+  }
+
+  async unsaveRoom(roomId) {
+    return this.request(`/saved-rooms?roomId=${roomId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async isRoomSaved(roomId) {
+    const response = await this.getSavedRooms();
+    if (response.success) {
+      return response.data.savedRooms.some(room => room.id === roomId);
+    }
+    return false;
+  }
+
+  // Property methods
+  async getProperties() {
+    return this.request('/properties');
+  }
+
+  async getMyProperties() {
+    return this.request('/properties/my-properties');
+  }
+
+  async postProperty(propertyData) {
+    return this.request('/properties/post', {
+      method: 'POST',
+      body: propertyData,
+    });
+  }
+
+  // Booking methods
+  async getBookings(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/bookings${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async createBooking(bookingData) {
+    return this.request('/bookings', {
+      method: 'POST',
+      body: bookingData,
+    });
+  }
+
+  async getBookingById(id) {
+    return this.request(`/bookings/${id}`);
+  }
+
+  async updateBooking(id, data) {
+    return this.request(`/bookings/${id}`, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
+  async processPayment(bookingId, paymentAmount, paymentMethod = 'card') {
+    return this.request('/bookings/payment', {
+      method: 'POST',
+      body: {
+        bookingId,
+        paymentAmount,
+        paymentMethod
+      },
+    });
+  }
+
+  // Meeting methods (additional)
+  async getMeetings(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/meetings${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async createMeeting(meetingData) {
+    return this.request('/meetings', {
+      method: 'POST',
+      body: meetingData,
+    });
+  }
+
+  async getMeetingById(id) {
+    return this.request(`/meetings/${id}`);
+  }
+
+  // Review methods
+  async getReviews(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/reviews${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async createReview(reviewData) {
+    return this.request('/reviews', {
+      method: 'POST',
+      body: reviewData,
+    });
+  }
+
+  async getReviewById(id) {
+    return this.request(`/reviews/${id}`);
+  }
+
+  // Room Sharing methods
+  async getRoomSharingList() {
+    return this.request('/room-sharing/list');
+  }
+
+  async createRoomSharing(sharingData) {
+    return this.request('/room-sharing', {
+      method: 'POST',
+      body: sharingData,
+    });
+  }
+
+  async getRoomSharingById(id) {
+    return this.request(`/room-sharing/${id}`);
+  }
+
+  async joinRoomSharing(id) {
+    return this.request(`/room-sharing/${id}/join`, {
+      method: 'POST',
+    });
+  }
+
+  async postRoomSharing(postData) {
+    return this.request('/room-sharing/post', {
+      method: 'POST',
+      body: postData,
+    });
+  }
+
+  async roomSharingAssessment(assessmentData) {
+    return this.request('/room-sharing/assessment', {
+      method: 'POST',
+      body: assessmentData,
+    });
+  }
+
+  // Upload methods
+  async uploadFile(formData) {
+    return this.request('/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {},
+      isFormData: true,
+    });
+  }
+
+  async uploadPropertyImage(formData) {
+    return this.request('/upload/property', {
+      method: 'POST',
+      body: formData,
+      headers: {},
+      isFormData: true,
+    });
+  }
+
+  async debugUpload() {
+    return this.request('/upload/debug');
+  }
+
+  // Verification methods (additional)
+  async getVerificationStatus() {
+    return this.request('/verify/status');
+  }
+
+  async getVerificationRequirements() {
+    return this.request('/verify/requirements');
+  }
+
+  async uploadDocument(formData) {
+    return this.request('/verify/upload-document', {
+      method: 'POST',
+      body: formData,
+      headers: {},
+      isFormData: true,
+    });
+  }
+
+  async uploadSelfie(formData) {
+    return this.request('/verify/upload-selfie', {
+      method: 'POST',
+      body: formData,
+      headers: {},
+      isFormData: true,
+    });
+  }
+
+  async uploadSelfieMock(formData) {
+    return this.request('/verify/upload-selfie-mock', {
+      method: 'POST',
+      body: formData,
+      headers: {},
+      isFormData: true,
+    });
+  }
+
+  async setupUser(userData) {
+    return this.request('/verify/setup-user', {
+      method: 'POST',
+      body: userData,
+    });
+  }
+
+  async fixVerificationStatus(statusData) {
+    return this.request('/verify/fix-status', {
+      method: 'POST',
+      body: statusData,
+    });
+  }
+
+  async testConnection() {
+    return this.request('/verify/test-connection');
+  }
+
+  async debugUser() {
+    return this.request('/verify/debug-user');
+  }
+
+  async debugVerification() {
+    return this.request('/verify/debug');
+  }
+
+  async verifyDigilocker() {
+    return this.request('/verify/digilocker');
+  }
+
+  // OTP methods (additional)
+  async sendOtp(otpData) {
+    return this.request('/otp/send', {
+      method: 'POST',
+      body: otpData,
+    });
+  }
+
+  async verifyOtp(verificationData) {
+    return this.request('/otp/verify', {
+      method: 'POST',
+      body: verificationData,
+    });
+  }
+
+  // Authentication methods (additional)
+  async getCurrentUser() {
+    return this.request('/auth/me');
+  }
+
+  async refreshToken() {
+    return this.request('/auth/refresh', {
+      method: 'POST',
+    });
+  }
+
+  async forgotPassword(identifier) {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: { identifier },
+    });
+  }
+
+  async resetPassword(token, password) {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: { token, password },
+    });
+  }
+
+  async logoutUser() {
+    const response = await this.request('/auth/logout', {
+      method: 'POST',
+    });
+    this.clearToken();
+    return response;
+  }
+
+  // Admin methods
+  async adminLogin(credentials) {
+    return this.request('/admin/auth/login', {
+      method: 'POST',
+      body: credentials,
+    });
+  }
+
+  async getAdminDashboard() {
+    return this.request('/admin/dashboard');
+  }
+
+  async reviewVerification(reviewData) {
+    return this.request('/admin/verification/review', {
+      method: 'POST',
+      body: reviewData,
+    });
+  }
+
+  // Health check methods
+  async getHealthServices() {
+    return this.request('/health/services');
+  }
+
+  // Debug methods
+  async debugLogin() {
+    return this.request('/debug-login');
   }
 
   // Logout

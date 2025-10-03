@@ -58,7 +58,7 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
-    if (!room.availability.isAvailable || room.occupiedRooms >= room.totalRooms) {
+    if (!room.availability.isAvailable || room.availability.availableRooms <= 0) {
       return NextResponse.json({
         success: false,
         error: 'Room is not available for booking'
@@ -117,6 +117,19 @@ export async function POST(request) {
     // Create the booking
     const booking = new Booking(bookingData);
     await booking.save();
+
+    // Update room availability - reduce available rooms by 1
+    await Room.findByIdAndUpdate(
+      body.roomId,
+      {
+        $inc: { 'availability.availableRooms': -1 },
+        $set: {
+          'availability.isAvailable': room.availability.availableRooms > 1
+        }
+      }
+    );
+
+    console.log(`Room ${body.roomId} availability reduced by 1 due to new booking`);
 
     // Populate booking for response
     await booking.populate([

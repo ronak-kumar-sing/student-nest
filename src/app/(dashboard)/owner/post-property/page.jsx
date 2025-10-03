@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import apiClient from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -226,22 +227,7 @@ export default function PostNewPropertyPage() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Please login again');
-        return;
-      }
-
-      const response = await fetch('/api/properties/post', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const result = await response.json();
+      const result = await apiClient.postProperty(formData);
 
       if (result.success) {
         toast.success(result.message || 'Property posted successfully!');
@@ -249,14 +235,14 @@ export default function PostNewPropertyPage() {
         // Show success details
         setTimeout(() => {
           toast.info('Redirecting to your properties...');
-          // window.location.href = result.data.dashboardUrl || '/owner/dashboard';
+          window.location.href = '/owner/properties';
         }, 2000);
       } else {
         toast.error(result.error || 'Failed to post property');
       }
     } catch (error) {
       console.error('Submit error:', error);
-      toast.error('Network error. Please try again.');
+      toast.error(error.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -301,8 +287,8 @@ export default function PostNewPropertyPage() {
                       <Card
                         key={type.value}
                         className={`cursor-pointer transition-all ${formData.propertyType === type.value
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                            : 'hover:border-gray-300'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'hover:border-gray-300'
                           }`}
                         onClick={() => handleInputChange('propertyType', type.value)}
                       >
@@ -581,8 +567,8 @@ export default function PostNewPropertyPage() {
                           <Card
                             key={amenity.id}
                             className={`cursor-pointer transition-all ${isSelected
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'hover:border-gray-300'
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              : 'hover:border-gray-300'
                               }`}
                             onClick={() => handleAmenityToggle(amenity.id)}
                           >
@@ -900,10 +886,10 @@ export default function PostNewPropertyPage() {
                     <div className="flex flex-col items-center">
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ${isCompleted
-                            ? 'bg-green-600 text-white'
-                            : isActive
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-200 text-gray-600'
+                          ? 'bg-green-600 text-white'
+                          : isActive
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-600'
                           }`}
                       >
                         {isCompleted ? <CheckCircle className="w-5 h-5" /> : step.id}

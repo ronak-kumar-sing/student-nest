@@ -78,6 +78,11 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Saved rooms for students
+  savedRooms: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Room'
+  }],
   isActive: {
     type: Boolean,
     default: true

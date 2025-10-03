@@ -22,6 +22,7 @@ import OwnerQuickActions from "@/components/dashboard/OwnerQuickActions";
 import AnalyticsOverview from "@/components/dashboard/AnalyticsOverview";
 import VerificationWidget from "@/components/verification/VerificationWidget";
 import { useVerificationStatus } from "@/components/verification/VerificationGuard";
+import apiClient from "@/lib/api";
 
 export default function OwnerDashboardPage() {
   const [user, setUser] = useState(null);
@@ -40,68 +41,65 @@ export default function OwnerDashboardPage() {
       setUser(parsedUser);
     }
 
-    // Simulate API call to fetch dashboard data
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock data - replace with actual API calls
-      setDashboardData({
-        stats: {
-          activeListings: 5,
-          fullyBooked: 2,
-          monthlyRevenue: 45000,
-          revenueChange: 12,
-          pendingVisits: 7,
-          totalMessages: 12,
-          unreadMessages: 5,
-          totalBookings: 23,
-          occupancyRate: 85,
-          pendingBookings: 3
-        },
-        activities: [
-          {
-            id: 1,
-            type: "booking",
-            title: "New booking request received",
-            description: "Rajesh Kumar requested to book Single Room at Green Valley PG",
-            time: "2 hours ago",
-            icon: Calendar,
-            color: "blue",
-            urgent: false
-          },
-          {
-            id: 2,
-            type: "payment",
-            title: "Payment received",
-            description: "₹15,000 received from Priya Sharma for December rent",
-            time: "3 hours ago",
-            icon: DollarSign,
-            color: "green",
-            urgent: false
-          }
-        ],
-        analytics: {
-          monthlyRevenue: 45000,
-          revenueChange: 12,
-          totalBookings: 23,
-          bookingChange: 8,
-          averageOccupancy: 85,
-          occupancyChange: -3,
-          totalProperties: 5,
-          topPerformingProperty: "Green Valley PG",
-          conversionRate: 68,
-          conversionChange: 5
-        }
-      });
-
-      setIsLoading(false);
-    };
-
-    fetchDashboardData();
+    // Load dashboard data from API
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiClient.getDashboard();
+
+      if (response.success) {
+        // Transform API response to match existing component structure
+        const apiData = response.data;
+        setDashboardData({
+          stats: {
+            activeListings: apiData.stats?.totalProperties || 0,
+            fullyBooked: apiData.stats?.occupiedProperties || 0,
+            monthlyRevenue: apiData.stats?.monthlyRevenue || 0,
+            revenueChange: apiData.stats?.revenueChange || 0,
+            pendingVisits: apiData.stats?.pendingMeetings || 0,
+            totalMessages: apiData.stats?.totalMessages || 0,
+            unreadMessages: apiData.stats?.unreadMessages || 0,
+            totalBookings: apiData.stats?.totalBookings || 0,
+            occupancyRate: apiData.stats?.occupancyRate || 0,
+            pendingBookings: apiData.stats?.pendingBookings || 0
+          },
+          activities: apiData.recentActivity || [],
+          analytics: {
+            monthlyRevenue: apiData.stats?.monthlyRevenue || 0,
+            revenueChange: apiData.stats?.revenueChange || 0,
+            totalBookings: apiData.stats?.totalBookings || 0,
+            bookingChange: apiData.stats?.bookingChange || 0,
+            averageOccupancy: apiData.stats?.occupancyRate || 0,
+            occupancyChange: apiData.stats?.occupancyChange || 0,
+            totalProperties: apiData.stats?.totalProperties || 0,
+            topPerformingProperty: apiData.stats?.topPerformingProperty || "N/A",
+            conversionRate: apiData.stats?.conversionRate || 0,
+            conversionChange: apiData.stats?.conversionChange || 0
+          }
+        });
+      } else {
+        // No data available - show empty state
+        setDashboardData({
+          stats: {},
+          activities: [],
+          analytics: {}
+        });
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      // Show empty state on error
+      setDashboardData({
+        stats: {},
+        activities: [],
+        analytics: {}
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsLoading(true);

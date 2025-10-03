@@ -228,21 +228,18 @@ const WriteReviewModal = ({ room, isOpen, onClose, onReviewSubmit }) => {
     setIsSubmitting(true)
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      const newReview = {
-        id: Date.now(),
-        userName: 'You',
-        rating: rating,
-        date: 'Just now',
+      // Create review data for API
+      const reviewData = {
+        propertyId: room.id,
+        overallRating: rating,
         comment: comment.trim(),
-        verified: false,
         categories: categories,
-        helpfulCount: 0,
-        stayDuration: null
+        stayDuration: '6 months', // Default value, could be made dynamic
       }
 
-      onReviewSubmit(newReview)
+      // Call the callback with the review data to handle API submission
+      await onReviewSubmit(reviewData)
+      
       showToast('Review submitted successfully!', 'success')
 
       // Reset form
