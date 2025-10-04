@@ -1,0 +1,37 @@
+import {
+  Home,
+  CalendarClock,
+  MessagesSquare,
+  Bookmark,
+  Plus,
+  CreditCard,
+  User,
+  Building,
+  BarChart3,
+  TrendingUp,
+  Users,
+  FileText,
+} from 'lucide-react';
+
+export const NAV_ITEMS = [
+  { label: 'Dashboard', href: '/dashboard', icon: Home, roles: ['student'] },
+  { label: 'Owner Dashboard', href: '/owner/dashboard', icon: BarChart3, roles: ['owner'] },
+  { label: 'My Bookings', href: '/dashboard/bookings', icon: FileText, roles: ['student'] },
+  { label: 'Owner Bookings', href: '/owner/bookings', icon: FileText, roles: ['owner'] },
+  {
+    label: 'Visiting Schedule',
+    href: '/dashboard/visiting-schedule',
+    icon: CalendarClock,
+    roles: ['student'],
+  },
+  { label: 'Room Sharing', href: '/shared-rooms', icon: Users, roles: ['student'] },
+  { label: 'Visit Requests', href: '/owner/visits', icon: CalendarClock, roles: ['owner'] },
+  { label: 'Analytics', href: '/owner/analytics', icon: TrendingUp, roles: ['owner'] },
+  { label: 'Messages', href: '/dashboard/messages', icon: MessagesSquare },
+  { label: 'Saved', href: '/dashboard/saved', icon: Bookmark, roles: ['student'] },
+  { label: 'Post Property', href: '/owner/post-property', icon: Plus, roles: ['owner'] },
+  { label: 'My Properties', href: '/owner/properties', icon: Building, roles: ['owner'] },
+  { label: 'Payments', href: '/owner/payments', icon: CreditCard, roles: ['owner'] },
+  { label: 'Student Profile', href: '/student/profile', icon: User, roles: ['student'] },
+  { label: 'Owner Profile', href: '/owner/profile', icon: Building, roles: ['owner'] },
+];
