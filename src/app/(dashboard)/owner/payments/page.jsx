@@ -24,116 +24,83 @@ import {
   ExternalLink
 } from "lucide-react";
 
+import apiClient from '@/lib/api';
+
 export default function OwnerPaymentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [paymentData, setPaymentData] = useState(null);
 
-  // Mock payment data
-  const paymentData = {
+  useEffect(() => {
+    fetchPaymentData();
+  }, []);
+
+  const fetchPaymentData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiClient.getOwnerRevenue();
+      if (response.success) {
+        const revenueData = response.data.revenue;
+        setPaymentData({
+          overview: {
+            totalRevenue: revenueData?.allTime || 0,
+            pendingPayments: revenueData?.pendingPayments?.reduce((sum, payment) => sum + payment.amount, 0) || 0,
+            thisMonth: revenueData?.currentMonth || 0,
+            lastMonthComparison: revenueData?.changePercentage || 0,
+            averagePaymentTime: "2.5 days"
+          },
+          recentPayments: [
+            ...(revenueData?.activeBookings?.map(booking => ({
+              id: booking.id,
+              tenant: booking.studentName,
+              property: booking.propertyTitle,
+              amount: booking.monthlyRent,
+              date: booking.startDate,
+              status: "completed",
+              method: "Online",
+              transactionId: `TXN${booking.id}`
+            })) || []),
+            ...(revenueData?.pendingPayments?.map(payment => ({
+              id: payment.id,
+              tenant: payment.studentName,
+              property: payment.propertyTitle,
+              amount: payment.amount,
+              date: payment.dueDate,
+              status: payment.overdue ? "overdue" : "pending",
+              method: "Pending",
+              transactionId: null
+            })) || [])
+          ]
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching payment data:', error);
+      setPaymentData({
+        overview: {
+          totalRevenue: 0,
+          pendingPayments: 0,
+          thisMonth: 0,
+          lastMonthComparison: 0,
+          averagePaymentTime: "N/A"
+        },
+        recentPayments: []
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Use paymentData from state, fallback to empty structure
+  const displayPaymentData = paymentData || {
     overview: {
-      totalRevenue: 135000,
-      pendingPayments: 25000,
-      thisMonth: 45000,
-      lastMonthComparison: 12.5,
-      averagePaymentTime: "2.5 days"
+      totalRevenue: 0,
+      pendingPayments: 0,
+      thisMonth: 0,
+      lastMonthComparison: 0,
+      averagePaymentTime: "N/A"
     },
-    recentPayments: [
-      {
-        id: "PAY001",
-        tenant: "Rajesh Kumar",
-        property: "Green Valley PG",
-        amount: 15000,
-        date: "2024-01-15",
-        status: "completed",
-        method: "UPI",
-        transactionId: "TXN123456789"
-      },
-      {
-        id: "PAY002",
-        tenant: "Priya Sharma",
-        property: "Sunshine PG",
-        amount: 12000,
-        date: "2024-01-14",
-        status: "completed",
-        method: "Bank Transfer",
-        transactionId: "TXN123456788"
-      },
-      {
-        id: "PAY003",
-        tenant: "Amit Patel",
-        property: "City Center PG",
-        amount: 18000,
-        date: "2024-01-13",
-        status: "pending",
-        method: "Credit Card",
-        transactionId: "TXN123456787"
-      },
-      {
-        id: "PAY004",
-        tenant: "Sneha Reddy",
-        property: "Metro View PG",
-        amount: 14000,
-        date: "2024-01-12",
-        status: "completed",
-        method: "UPI",
-        transactionId: "TXN123456786"
-      },
-      {
-        id: "PAY005",
-        tenant: "Vikram Singh",
-        property: "Student Hub",
-        amount: 10000,
-        date: "2024-01-11",
-        status: "failed",
-        method: "Bank Transfer",
-        transactionId: "TXN123456785"
-      }
-    ],
-    upcomingPayments: [
-      {
-        id: "UP001",
-        tenant: "Anita Desai",
-        property: "Green Valley PG",
-        amount: 15000,
-        dueDate: "2024-01-20",
-        status: "due"
-      },
-      {
-        id: "UP002",
-        tenant: "Rohit Gupta",
-        property: "Sunshine PG",
-        amount: 12000,
-        dueDate: "2024-01-22",
-        status: "due"
-      },
-      {
-        id: "UP003",
-        tenant: "Kavya Nair",
-        property: "City Center PG",
-        amount: 18000,
-        dueDate: "2024-01-25",
-        status: "overdue"
-      }
-    ],
-    payoutHistory: [
-      {
-        id: "PO001",
-        amount: 95000,
-        date: "2024-01-01",
-        status: "completed",
-        bankAccount: "****1234",
-        fees: 950
-      },
-      {
-        id: "PO002",
-        amount: 87000,
-        date: "2023-12-01",
-        status: "completed",
-        bankAccount: "****1234",
-        fees: 870
-      }
-    ]
+    recentPayments: []
   };
 
   const getStatusColor = (status) => {
@@ -167,7 +134,7 @@ export default function OwnerPaymentsPage() {
     }
   };
 
-  const filteredPayments = paymentData.recentPayments.filter(payment => {
+  const filteredPayments = (displayPaymentData.recentPayments || []).filter(payment => {
     const matchesSearch = payment.tenant.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.property.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
@@ -211,12 +178,12 @@ export default function OwnerPaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              ₹{paymentData.overview.totalRevenue.toLocaleString()}
+              ₹{displayPaymentData.overview.totalRevenue.toLocaleString()}
             </div>
             <div className="flex items-center gap-1 mt-1">
               <ArrowUpRight className="h-3 w-3 text-green-500" />
               <span className="text-xs text-green-500">
-                +{paymentData.overview.lastMonthComparison}% from last month
+                +{displayPaymentData.overview.lastMonthComparison}% from last month
               </span>
             </div>
           </CardContent>
@@ -231,7 +198,7 @@ export default function OwnerPaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              ₹{paymentData.overview.thisMonth.toLocaleString()}
+              ₹{displayPaymentData.overview.thisMonth.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               January 2024
@@ -248,7 +215,7 @@ export default function OwnerPaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              ₹{paymentData.overview.pendingPayments.toLocaleString()}
+              ₹{displayPaymentData.overview.pendingPayments.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Awaiting collection
@@ -265,7 +232,7 @@ export default function OwnerPaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {paymentData.overview.averagePaymentTime}
+              {displayPaymentData.overview.averagePaymentTime}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Average collection time
@@ -363,7 +330,7 @@ export default function OwnerPaymentsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {paymentData.upcomingPayments.map((payment) => {
+                {(displayPaymentData.upcomingPayments || []).map((payment) => {
                   const StatusIcon = getStatusIcon(payment.status);
 
                   return (
@@ -412,7 +379,7 @@ export default function OwnerPaymentsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {paymentData.payoutHistory.map((payout) => (
+                {(displayPaymentData.payoutHistory || []).map((payout) => (
                   <div key={payout.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
                     <div className="flex items-center gap-4">
                       <div className="p-2 rounded-full bg-green-500/10 text-green-500">

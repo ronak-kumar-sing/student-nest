@@ -18,9 +18,11 @@ import {
   Mail,
   MapPin,
   User,
-  Eye
+  Eye,
+  Edit2
 } from 'lucide-react';
 import apiClient from '@/lib/api';
+import RescheduleModal from '@/components/dashboard/RescheduleModal';
 
 export default function OwnerVisitsPage() {
   const [visitData, setVisitData] = useState(null);
@@ -67,7 +69,7 @@ export default function OwnerVisitsPage() {
 
   const filterVisits = () => {
     if (!visitData || !visitData.visits) return;
-    
+
     let filtered = visitData.visits;
 
     if (searchTerm) {
@@ -103,7 +105,7 @@ export default function OwnerVisitsPage() {
       completed: { color: 'text-green-600 bg-green-50 border-green-200', label: 'Completed' },
       cancelled: { color: 'text-red-600 bg-red-50 border-red-200', label: 'Cancelled' }
     };
-    
+
     const config = statusConfig[status] || statusConfig.pending;
     return (
       <Badge className={config.color}>
@@ -268,8 +270,8 @@ export default function OwnerVisitsPage() {
               <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-semibold mb-2">No visit requests found</h3>
               <p className="text-muted-foreground">
-                {visitData?.total === 0 
-                  ? "You haven't received any visit requests yet." 
+                {visitData?.total === 0
+                  ? "You haven't received any visit requests yet."
                   : "No visits match your current filters."}
               </p>
             </CardContent>
@@ -346,16 +348,16 @@ export default function OwnerVisitsPage() {
                   <div className="flex flex-col gap-2 ml-4">
                     {visit.status === 'pending' && (
                       <>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={() => handleVisitAction(visit.id, 'confirm')}
                           className="bg-green-600 hover:bg-green-500"
                         >
                           <CheckCircle className="h-4 w-4 mr-2" />
                           Confirm
                         </Button>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => handleVisitAction(visit.id, 'decline')}
                         >
@@ -363,6 +365,20 @@ export default function OwnerVisitsPage() {
                           Decline
                         </Button>
                       </>
+                    )}
+                    {(visit.status === 'confirmed' || visit.status === 'pending') && (
+                      <RescheduleModal
+                        meetingId={visit.id}
+                        currentDate={visit.date}
+                        currentTime={visit.time}
+                        onReschedule={fetchVisitData}
+                        trigger={
+                          <Button size="sm" variant="outline">
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Reschedule
+                          </Button>
+                        }
+                      />
                     )}
                     <Button size="sm" variant="ghost">
                       <Eye className="h-4 w-4 mr-2" />

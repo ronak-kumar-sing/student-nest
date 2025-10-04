@@ -26,8 +26,8 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const isStudent = user?.userType === 'student';
-  const isOwner = user?.userType === 'owner';
+  const isStudent = user?.role === 'Student' || user?.userType === 'student';
+  const isOwner = user?.role === 'Owner' || user?.userType === 'owner';
 
   // If user is an owner, redirect to owner dashboard
   useEffect(() => {

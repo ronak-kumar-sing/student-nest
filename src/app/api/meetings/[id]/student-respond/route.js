@@ -25,7 +25,7 @@ async function getAuthenticatedUser(request) {
   }
 }
 
-// POST /api/meetings/[id]/respond - Respond to meeting request
+// POST /api/meetings/[id]/student-respond - Student response to meeting/reschedule
 export async function POST(request, { params }) {
   try {
     const { userId, role, error } = await getAuthenticatedUser(request);
@@ -37,10 +37,10 @@ export async function POST(request, { params }) {
       }, { status: 401 });
     }
 
-    if (role?.toLowerCase() !== 'owner') {
+    if (role?.toLowerCase() !== 'student') {
       return NextResponse.json({
         success: false,
-        error: 'Unauthorized: Owner access required'
+        error: 'Unauthorized: Student access required'
       }, { status: 403 });
     }
 
@@ -48,7 +48,7 @@ export async function POST(request, { params }) {
 
     const meetingId = params.id;
     const body = await request.json();
-    const { action, response, confirmedDate, confirmedTime } = body;
+    const { action, response, counterProposal } = body;
 
     // Find the meeting
     const meeting = await Meeting.findById(meetingId);
@@ -59,62 +59,58 @@ export async function POST(request, { params }) {
       }, { status: 404 });
     }
 
-    // Verify the meeting belongs to this owner
-    if (meeting.owner.toString() !== userId) {
+    // Verify the meeting belongs to this student
+    if (meeting.student.toString() !== userId) {
       return NextResponse.json({
         success: false,
-        error: 'Unauthorized: You can only respond to your own meeting requests'
+        error: 'Unauthorized: You can only respond to your own meetings'
       }, { status: 403 });
     }
 
     // Validate action
-    if (!['accept', 'decline', 'confirm', 'accept_counter', 'decline_counter'].includes(action)) {
+    if (!['accept', 'decline', 'counter_reschedule'].includes(action)) {
       return NextResponse.json({
         success: false,
-        error: 'Invalid action. Must be accept, decline, confirm, accept_counter, or decline_counter'
+        error: 'Invalid action. Must be accept, decline, or counter_reschedule'
       }, { status: 400 });
     }
 
     // Update meeting based on action
     let updateData = {};
+    let message = '';
 
     switch (action) {
       case 'accept':
-      case 'confirm':
         updateData.status = 'confirmed';
-        updateData.ownerResponse = response || 'Meeting confirmed';
-        if (confirmedDate && confirmedTime) {
-          updateData.confirmedDate = new Date(confirmedDate);
-          updateData.confirmedTime = confirmedTime;
-        }
+        updateData.studentResponse = response || 'Meeting accepted by student';
+        updateData.studentResponseAt = new Date();
+        message = 'Meeting accepted successfully';
         break;
 
       case 'decline':
         updateData.status = 'declined';
-        updateData.ownerResponse = response || 'Meeting declined';
+        updateData.studentResponse = response || 'Meeting declined by student';
+        updateData.studentResponseAt = new Date();
+        message = 'Meeting declined';
         break;
 
-      case 'accept_counter':
-        // Accept student's counter proposal
-        if (meeting.counterProposal) {
-          updateData.status = 'confirmed';
-          updateData.confirmedDate = meeting.counterProposal.date;
-          updateData.confirmedTime = meeting.counterProposal.time;
-          updateData.ownerResponse = response || 'Counter proposal accepted';
-          updateData.counterProposal = undefined; // Clear counter proposal
-        } else {
+      case 'counter_reschedule':
+        if (!counterProposal || !counterProposal.newDate || !counterProposal.newTime) {
           return NextResponse.json({
             success: false,
-            error: 'No counter proposal found to accept'
+            error: 'Counter proposal must include new date and time'
           }, { status: 400 });
         }
-        break;
 
-      case 'decline_counter':
-        // Decline student's counter proposal
-        updateData.status = 'pending'; // Back to pending for new negotiation
-        updateData.ownerResponse = response || 'Counter proposal declined';
-        updateData.counterProposal = undefined; // Clear counter proposal
+        updateData.status = 'pending_owner_response';
+        updateData.studentResponse = response || 'Student requested different time';
+        updateData.studentResponseAt = new Date();
+        updateData.counterProposal = {
+          date: new Date(counterProposal.newDate),
+          time: counterProposal.newTime,
+          reason: counterProposal.reason || 'Student counter-proposal'
+        };
+        message = 'Counter proposal sent to owner';
         break;
     }
 
@@ -125,33 +121,29 @@ export async function POST(request, { params }) {
       { new: true }
     ).populate([
       { path: 'property', select: 'title location' },
-      { path: 'student', select: 'fullName phone email' }
+      { path: 'owner', select: 'fullName phone email' }
     ]);
 
     return NextResponse.json({
       success: true,
-      message: `Meeting ${action}ed successfully`,
+      message,
       data: {
         meetingId: updatedMeeting._id,
         status: updatedMeeting.status,
-        ownerResponse: updatedMeeting.ownerResponse,
+        studentResponse: updatedMeeting.studentResponse,
         confirmedDate: updatedMeeting.confirmedDate,
         confirmedTime: updatedMeeting.confirmedTime,
+        counterProposal: updatedMeeting.counterProposal,
         property: updatedMeeting.property,
-        student: updatedMeeting.student
+        owner: updatedMeeting.owner
       }
     });
 
   } catch (error) {
-    console.error('Error responding to meeting:', error);
+    console.error('Error processing student response:', error);
     return NextResponse.json({
       success: false,
-      error: 'Failed to respond to meeting'
+      error: 'Failed to process student response'
     }, { status: 500 });
   }
-}
-
-// PUT method for backward compatibility
-export async function PUT(request, { params }) {
-  return POST(request, { params });
 }

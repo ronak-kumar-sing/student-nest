@@ -1,56 +1,61 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { loginSchema } from "@/lib/validation/authSchemas"
 import { InputField } from "@/components/forms/InputField"
 import { PasswordInput } from "@/components/forms/PasswordInput"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { User } from "lucide-react"
+import { User, Shield } from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function OwnerLoginPage() {
+  const router = useRouter()
+  const { login, isAuthenticated, loading: authLoading } = useAuth()
+  
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
   })
 
   const [loading, setLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      const redirectPath = new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
+      router.push(redirectPath);
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   async function onSubmit(values) {
     setLoading(true)
+    
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, role: "owner" }),
-      })
-
-      const data = await res.json()
-
-      if (res.ok && data.success) {
-        const user = {
-          ...data.user,
-          userType: data.user.role.toLowerCase()
-        }
-
-        if (data.user.verification?.status === "pending") {
+      const result = await login(values.identifier, values.password, 'owner', rememberMe)
+      
+      if (result.success) {
+        const user = result.user;
+        
+        // Handle different verification states
+        if (user.verification?.status === "pending") {
           toast.info("Please complete your verification process.")
-          localStorage.setItem("token", data.accessToken)
-          localStorage.setItem("user", JSON.stringify(user))
-          window.location.href = "/verification"
-        } else if (data.user.verification?.status === "verified" || data.user.isActive) {
-          toast.success("Welcome back!")
-          localStorage.setItem("token", data.accessToken)
-          localStorage.setItem("user", JSON.stringify(user))
-          window.location.href = "/dashboard"
+          router.push("/verification");
+        } else if (user.verification?.status === "verified" || user.isActive) {
+          toast.success(`Welcome back, ${user.fullName || user.email}!`)
+          const redirectPath = new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
+          router.push(redirectPath);
         } else {
           toast.warning("Your account is under review. Please wait for verification.")
         }
       } else {
-        toast.error(data.message || data.error || "Login failed. Please check your credentials.")
+        toast.error(result.error || "Login failed. Please check your credentials.")
       }
     } catch (error) {
       console.error("Login error:", error)
@@ -116,13 +121,28 @@ export default function OwnerLoginPage() {
               )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember"
+                  checked={rememberMe}
+                  onCheckedChange={setRememberMe}
+                />
+                <label
+                  htmlFor="remember"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-1"
+                >
+                  <Shield className="h-3 w-3" />
+                  Stay logged in for a week
+                </label>
+              </div>
+              
               <Link href="/forgot-password" className="text-sm text-green-600 hover:underline">
                 Forgot password?
               </Link>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || authLoading}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>

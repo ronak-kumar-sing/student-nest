@@ -54,13 +54,28 @@ export async function POST(request) {
 
     await user.save();
 
-    // Clear refresh token cookie
+    // Create logout response
     const response = NextResponse.json({
       success: true,
       message: 'Logged out successfully'
     });
 
-    response.cookies.delete('refreshToken');
+    // Clear both authentication cookies
+    response.cookies.set('refreshToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0,
+      path: '/'
+    });
+
+    response.cookies.set('accessToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0,
+      path: '/'
+    });
 
     return response;
 

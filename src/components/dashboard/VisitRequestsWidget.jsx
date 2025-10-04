@@ -14,12 +14,20 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  Filter
+  Filter,
+  Edit2
 } from 'lucide-react';
+import RescheduleModal from '@/components/dashboard/RescheduleModal';
 
-export default function VisitRequestsWidget({ visitRequests }) {
+export default function VisitRequestsWidget({ visitRequests, onRefresh }) {
   const [filter, setFilter] = useState('all'); // all, pending, confirmed, completed
   const [showAll, setShowAll] = useState(false);
+
+  const handleReschedule = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
 
   if (!visitRequests) {
     return (
@@ -202,10 +210,18 @@ export default function VisitRequestsWidget({ visitRequests }) {
                     </>
                   )}
                   {visit.status === 'confirmed' && (
-                    <Button size="sm" variant="outline" className="w-full">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Reschedule
-                    </Button>
+                    <RescheduleModal
+                      meetingId={visit.id}
+                      currentDate={visit.confirmedDate}
+                      currentTime={visit.confirmedTime}
+                      onReschedule={handleReschedule}
+                      trigger={
+                        <Button size="sm" variant="outline" className="w-full">
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Reschedule
+                        </Button>
+                      }
+                    />
                   )}
                   <Button size="sm" variant="ghost">
                     <Eye className="h-4 w-4 mr-2" />

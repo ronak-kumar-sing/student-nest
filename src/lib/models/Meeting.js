@@ -211,6 +211,27 @@ const meetingSchema = new mongoose.Schema({
     }
   },
 
+  // General meeting history for tracking all actions
+  history: [{
+    action: {
+      type: String,
+      enum: ['created', 'confirmed', 'rescheduled', 'cancelled', 'completed', 'modified'],
+      required: true
+    },
+    performedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    performedAt: {
+      type: Date,
+      default: Date.now
+    },
+    details: {
+      type: mongoose.Schema.Types.Mixed
+    }
+  }],
+
   // Priority and urgency
   isUrgent: {
     type: Boolean,

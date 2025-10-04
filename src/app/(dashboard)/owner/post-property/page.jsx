@@ -164,22 +164,66 @@ export default function PostNewPropertyPage() {
 
     setImageLoading(true);
     try {
-      // Mock image upload - replace with actual upload logic
-      const newImages = Array.from(files).map((file, index) => ({
-        id: Date.now() + index,
-        file,
-        preview: URL.createObjectURL(file),
-        name: file.name,
-        size: file.size
-      }));
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'property_images'); // Make sure this preset exists in Cloudinary
 
+        // Upload to Cloudinary directly or use your upload API
+        try {
+          const response = await fetch('/api/upload/property', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+            body: formData,
+          });
+
+          const result = await response.json();
+          
+          if (result.success) {
+            return {
+              id: Date.now() + Math.random(),
+              url: result.data.secure_url,
+              preview: result.data.secure_url,
+              name: file.name,
+              size: file.size
+            };
+          } else {
+            throw new Error(result.error || 'Upload failed');
+          }
+        } catch (error) {
+          console.error('Upload error for file:', file.name, error);
+          // Fallback: create a placeholder URL for now
+          return {
+            id: Date.now() + Math.random(),
+            url: `https://via.placeholder.com/400x300?text=${encodeURIComponent(file.name)}`,
+            preview: URL.createObjectURL(file),
+            name: file.name,
+            size: file.size,
+            isPlaceholder: true
+          };
+        }
+      });
+
+      const uploadedImages = await Promise.all(uploadPromises);
+      
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...newImages]
+        images: [...prev.images, ...uploadedImages]
       }));
 
-      toast.success(`${files.length} image(s) uploaded successfully`);
+      const successCount = uploadedImages.filter(img => !img.isPlaceholder).length;
+      const failureCount = uploadedImages.filter(img => img.isPlaceholder).length;
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} image(s) uploaded successfully`);
+      }
+      if (failureCount > 0) {
+        toast.warning(`${failureCount} image(s) failed to upload, using placeholders`);
+      }
     } catch (error) {
+      console.error('Image upload error:', error);
       toast.error('Failed to upload images');
     } finally {
       setImageLoading(false);
@@ -227,7 +271,32 @@ export default function PostNewPropertyPage() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const result = await apiClient.postProperty(formData);
+      // Map amenities to valid backend values
+      const amenityMapping = {
+        'food': 'cafeteria',
+        'attached_bathroom': 'geyser', // Map to closest valid amenity
+        'fan': 'cooler'
+      };
+
+      const mappedAmenities = formData.amenities.map(amenity => amenityMapping[amenity] || amenity);
+
+      // Prepare the data for submission
+      const submissionData = {
+        ...formData,
+        // Extract URLs from image objects
+        images: formData.images
+          .filter(img => img.url && !img.url.startsWith('blob:'))
+          .map(img => img.url),
+        // Map amenities to valid values
+        amenities: mappedAmenities
+      };
+
+      console.log('Submitting property data:', {
+        ...submissionData,
+        images: submissionData.images.length + ' images'
+      });
+
+      const result = await apiClient.postProperty(submissionData);
 
       if (result.success) {
         toast.success(result.message || 'Property posted successfully!');

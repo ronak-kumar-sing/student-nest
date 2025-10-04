@@ -76,7 +76,7 @@ export async function POST(request) {
     // Prepare user data for response
     const userData = user.toPublicProfile();
 
-    // Set new refresh token as httpOnly cookie
+    // Create response with refreshed tokens and user data
     const response = NextResponse.json({
       success: true,
       message: 'Tokens refreshed successfully',
@@ -84,11 +84,22 @@ export async function POST(request) {
       accessToken
     });
 
+    // Set new refresh token as httpOnly cookie (7 days)
     response.cookies.set('refreshToken', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/'
+    });
+
+    // Set new access token as httpOnly cookie (1 hour)
+    response.cookies.set('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60, // 1 hour
+      path: '/'
     });
 
     return response;

@@ -23,12 +23,21 @@ export default function VerificationWidget({ userRole, compact = false }) {
   const isOwner = userRole?.toLowerCase() === 'owner';
 
   useEffect(() => {
-    fetchVerificationStatus();
+    // Add a small delay to prevent rapid successive calls
+    const timer = setTimeout(() => {
+      fetchVerificationStatus();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchVerificationStatus = async () => {
+    // Prevent multiple simultaneous calls
+    if (loading === 'fetching') return;
+    
     try {
-      const token = localStorage.getItem('token');
+      setLoading('fetching');
+      const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
       if (!token) {
         setLoading(false);
         return;
@@ -40,10 +49,19 @@ export default function VerificationWidget({ userRole, compact = false }) {
         }
       });
 
+      if (response.status === 401) {
+        // Token expired or invalid, don't retry
+        console.log('Authentication failed for verification requirements');
+        setLoading(false);
+        return;
+      }
+
       const result = await response.json();
 
       if (result.success) {
         setVerificationStatus(result.data);
+      } else {
+        console.log('Verification requirements fetch failed:', result.error);
       }
     } catch (error) {
       console.error('Error fetching verification status:', error);

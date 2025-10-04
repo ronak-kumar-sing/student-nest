@@ -244,7 +244,7 @@ export async function POST(request) {
 
     console.log('Login successful for:', user.email);
 
-    // Set refresh token as httpOnly cookie
+    // Create response with user data and access token
     const response = NextResponse.json({
       success: true,
       message: 'Login successful',
@@ -252,11 +252,22 @@ export async function POST(request) {
       accessToken
     });
 
+    // Set refresh token as httpOnly cookie (7 days)
     response.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/'
+    });
+
+    // Set access token as httpOnly cookie (1 hour for security)
+    response.cookies.set('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60, // 1 hour
+      path: '/'
     });
 
     return response;

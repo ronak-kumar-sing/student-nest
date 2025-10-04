@@ -2,6 +2,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/providers/theme-provider";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/hooks/useAuth";
+import AuthInitializer from "@/components/auth/AuthInitializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,7 +40,11 @@ export default function RootLayout({ children }) {
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <AuthProvider>
+            <AuthInitializer>
+              {children}
+            </AuthInitializer>
+          </AuthProvider>
           <Toaster
             richColors
             closeButton

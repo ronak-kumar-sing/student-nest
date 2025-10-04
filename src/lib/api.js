@@ -65,15 +65,32 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
+      
+      // Handle 401 - Token expired, try to refresh
+      if (response.status === 401 && endpoint !== '/auth/refresh' && endpoint !== '/auth/login') {
+        console.log('Token expired, attempting to refresh...');
+        
+        try {
+          const refreshResponse = await this.attemptTokenRefresh();
+          if (refreshResponse.success) {
+            // Retry original request with new token
+            config.headers.Authorization = `Bearer ${refreshResponse.accessToken}`;
+            const retryResponse = await fetch(url, config);
+            return await retryResponse.json();
+          }
+        } catch (refreshError) {
+          console.log('Token refresh failed:', refreshError.message);
+          this.handleAuthFailure();
+          throw new Error('Authentication failed');
+        }
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle token expiry
+        // Handle other auth failures
         if (response.status === 401) {
-          this.clearToken();
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
+          this.handleAuthFailure();
         }
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
@@ -85,15 +102,78 @@ class ApiClient {
     }
   }
 
+  async attemptTokenRefresh() {
+    try {
+      const response = await fetch(`${this.baseURL}/api/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include', // Include httpOnly cookies
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Update stored token
+        this.setToken(data.accessToken);
+        
+        // Update user data if provided
+        if (data.user && typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
+
+        console.log('Token refreshed successfully');
+        return data;
+      } else {
+        throw new Error(data.message || 'Token refresh failed');
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      throw error;
+    }
+  }
+
+  handleAuthFailure() {
+    console.log('Authentication failed, redirecting to login...');
+    this.clearToken();
+    
+    if (typeof window !== 'undefined') {
+      // Store current page for redirect after login
+      const currentPath = window.location.pathname + window.location.search;
+      if (currentPath !== '/login' && currentPath !== '/signup') {
+        localStorage.setItem('redirectAfterLogin', currentPath);
+      }
+      
+      // Redirect to login
+      window.location.href = '/login';
+    }
+  }
+
   // Auth methods
-  async login(identifier, password, userType) {
+  async login(identifier, password, role, rememberMe = true) {
     const response = await this.request('/auth/login', {
       method: 'POST',
-      body: { identifier, password, userType },
+      body: { identifier, password, role, rememberMe },
+      credentials: 'include', // Include httpOnly cookies
     });
 
-    if (response.success && response.data.token) {
-      this.setToken(response.data.token);
+    if (response.success && response.accessToken) {
+      this.setToken(response.accessToken);
+      
+      // Store user data and login state
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('loginTime', new Date().toISOString());
+        
+        // Handle redirect after login
+        const redirectPath = localStorage.getItem('redirectAfterLogin');
+        if (redirectPath) {
+          localStorage.removeItem('redirectAfterLogin');
+          window.location.href = redirectPath;
+        }
+      }
     }
 
     return response;
@@ -292,6 +372,67 @@ class ApiClient {
   async getMeetingDetails(meetingId) {
     return this.request(`/meetings/${meetingId}/respond`, {
       method: 'GET',
+    });
+  }
+
+  async rescheduleMeeting(meetingId, rescheduleData) {
+    return this.request(`/meetings/${meetingId}/reschedule`, {
+      method: 'POST',
+      body: rescheduleData,
+    });
+  }
+
+  async cancelMeeting(meetingId, cancelData) {
+    return this.request(`/meetings/${meetingId}/cancel`, {
+      method: 'POST',
+      body: cancelData,
+    });
+  }
+
+  async createGoogleMeet(meetingId, meetData) {
+    return this.request(`/meetings/${meetingId}/google-meet`, {
+      method: 'POST',
+      body: { action: 'create', ...meetData },
+    });
+  }
+
+  async joinGoogleMeet(meetingId) {
+    return this.request(`/meetings/${meetingId}/google-meet`, {
+      method: 'POST',
+      body: { action: 'join' },
+    });
+  }
+
+  async endGoogleMeet(meetingId) {
+    return this.request(`/meetings/${meetingId}/google-meet`, {
+      method: 'POST',
+      body: { action: 'end' },
+    });
+  }
+
+  async getGoogleMeetDetails(meetingId) {
+    return this.request(`/meetings/${meetingId}/google-meet`, {
+      method: 'GET',
+    });
+  }
+
+  async submitMeetingRating(meetingId, ratingData) {
+    return this.request(`/meetings/${meetingId}/rating`, {
+      method: 'POST',
+      body: ratingData,
+    });
+  }
+
+  async getMeetingRating(meetingId) {
+    return this.request(`/meetings/${meetingId}/rating`, {
+      method: 'GET',
+    });
+  }
+
+  async studentRespondToMeeting(meetingId, responseData) {
+    return this.request(`/meetings/${meetingId}/student-respond`, {
+      method: 'POST',
+      body: responseData,
     });
   }
 
@@ -641,11 +782,122 @@ class ApiClient {
   }
 
   async logoutUser() {
-    const response = await this.request('/auth/logout', {
-      method: 'POST',
-    });
+    try {
+      const response = await this.request('/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      // Clear all stored data
+      this.clearToken();
+      
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user');
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('loginTime');
+      }
+      
+      return response;
+    } catch (error) {
+      // Clear local data even if server request fails
+      this.clearToken();
+      
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user');
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('loginTime');
+      }
+      
+      throw error;
+    }
+  }
+
+  // Authentication persistence methods
+  async checkAuthStatus() {
+    if (typeof window === 'undefined') return false;
+    
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const token = this.getToken();
+    
+    if (!isLoggedIn || !token) {
+      return false;
+    }
+    
+    try {
+      // Try to get current user to validate token
+      const response = await this.getCurrentUser();
+      return response.success;
+    } catch (error) {
+      // Token invalid, try refresh
+      try {
+        const refreshResponse = await this.attemptTokenRefresh();
+        return refreshResponse.success;
+      } catch (refreshError) {
+        this.clearAuthData();
+        return false;
+      }
+    }
+  }
+
+  async initializeAuth() {
+    if (typeof window === 'undefined') return null;
+    
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const token = this.getToken();
+    const userData = localStorage.getItem('user');
+    
+    if (!isLoggedIn || !token) {
+      return null;
+    }
+    
+    try {
+      // Set the token
+      this.setToken(token);
+      
+      // Try to refresh user data from server
+      const response = await this.getCurrentUser();
+      if (response.success && response.user) {
+        localStorage.setItem('user', JSON.stringify(response.user));
+        return response.user;
+      } else if (userData) {
+        return JSON.parse(userData);
+      }
+    } catch (error) {
+      // Try token refresh
+      try {
+        const refreshResponse = await this.attemptTokenRefresh();
+        if (refreshResponse.success) {
+          return refreshResponse.user;
+        }
+      } catch (refreshError) {
+        console.log('Auto-login failed, clearing auth data');
+        this.clearAuthData();
+      }
+    }
+    
+    return null;
+  }
+
+  clearAuthData() {
     this.clearToken();
-    return response;
+    
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user');
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('loginTime');
+    }
+  }
+
+  getStoredUser() {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const userData = localStorage.getItem('user');
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.error('Error parsing stored user data:', error);
+      return null;
+    }
   }
 
   // Owner Analytics methods

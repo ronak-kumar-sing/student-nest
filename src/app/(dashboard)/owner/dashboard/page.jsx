@@ -205,7 +205,10 @@ export default function OwnerDashboardPage() {
           <AnalyticsOverview analyticsData={dashboardData.analytics} />
 
           {/* Visit Requests */}
-          <VisitRequestsWidget visitRequests={dashboardData.visitRequests} />
+          <VisitRequestsWidget
+            visitRequests={dashboardData.visitRequests}
+            onRefresh={loadDashboardData}
+          />
         </div>
 
         {/* Right Column - Quick Actions & Revenue */}

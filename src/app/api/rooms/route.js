@@ -3,8 +3,117 @@ import connectDB from '@/lib/db/connection';
 import Room from '@/lib/models/Room';
 import User from '@/lib/models/User';
 
+// Sample rooms data for when database is empty
+function getSampleRooms() {
+  return [
+    {
+      id: 'sample-1',
+      title: 'Cozy Single Room in Central Delhi',
+      description: 'A well-furnished single room perfect for students, located near Delhi University.',
+      price: 8000,
+      images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300'],
+      roomType: 'single',
+      accommodationType: 'pg',
+      rating: 4.2,
+      totalReviews: 15,
+      amenities: ['wifi', 'ac', 'parking', 'security'],
+      location: {
+        address: '123 Main Street, North Campus',
+        city: 'Delhi',
+        coordinates: { lat: 28.6139, lng: 77.2090 }
+      },
+      features: {
+        area: 120,
+        furnished: true,
+        balcony: false
+      },
+      availability: {
+        isAvailable: true,
+        availableFrom: new Date().toISOString()
+      },
+      owner: {
+        name: 'Rajesh Kumar',
+        verified: true,
+        rating: 4.5,
+        responseRate: 95
+      },
+      occupancyRate: 0,
+      isAvailable: true
+    },
+    {
+      id: 'sample-2',
+      title: 'Shared Room Near IIT Delhi',
+      description: 'Affordable shared accommodation with all modern amenities, 5 minutes from IIT Delhi.',
+      price: 6000,
+      images: ['https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300'],
+      roomType: 'shared',
+      accommodationType: 'hostel',
+      rating: 4.0,
+      totalReviews: 23,
+      amenities: ['wifi', 'laundry', 'gym', 'security', 'cafeteria'],
+      location: {
+        address: '456 Campus Road, Hauz Khas',
+        city: 'Delhi',
+        coordinates: { lat: 28.5494, lng: 77.1926 }
+      },
+      features: {
+        area: 100,
+        furnished: true,
+        balcony: true
+      },
+      availability: {
+        isAvailable: true,
+        availableFrom: new Date().toISOString()
+      },
+      owner: {
+        name: 'Priya Sharma',
+        verified: true,
+        rating: 4.3,
+        responseRate: 88
+      },
+      occupancyRate: 50,
+      isAvailable: true
+    },
+    {
+      id: 'sample-3',
+      title: 'Studio Apartment in Noida',
+      description: 'Modern studio apartment perfect for students and young professionals.',
+      price: 12000,
+      images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300'],
+      roomType: 'studio',
+      accommodationType: 'apartment',
+      rating: 4.7,
+      totalReviews: 8,
+      amenities: ['wifi', 'ac', 'parking', 'security', 'gym'],
+      location: {
+        address: '789 Tech Park, Sector 62',
+        city: 'Noida',
+        coordinates: { lat: 28.6271, lng: 77.3716 }
+      },
+      features: {
+        area: 200,
+        furnished: true,
+        balcony: true
+      },
+      availability: {
+        isAvailable: true,
+        availableFrom: new Date().toISOString()
+      },
+      owner: {
+        name: 'Amit Gupta',
+        verified: true,
+        rating: 4.8,
+        responseRate: 92
+      },
+      occupancyRate: 0,
+      isAvailable: true
+    }
+  ];
+}
+
 export async function GET(request) {
   try {
+    console.log('🏠 Rooms API called');
     await connectDB();
 
     // Parse query parameters
@@ -121,6 +230,9 @@ export async function GET(request) {
       ];
     }
 
+    console.log('🔍 Searching with filters:', filters);
+    console.log('📄 Pagination:', { page, limit, skip });
+
     // Execute query
     const [rooms, totalCount] = await Promise.all([
       Room.find(filters)
@@ -133,41 +245,53 @@ export async function GET(request) {
       Room.countDocuments(filters)
     ]);
 
-    // Format response
-    const formattedRooms = rooms.map(room => ({
-      id: room._id,
-      title: room.title,
-      description: room.description,
-      price: room.price,
-      images: room.images || ['/api/placeholder/400/300'],
-      roomType: room.roomType,
-      accommodationType: room.accommodationType,
-      rating: room.rating || 0,
-      totalReviews: room.totalReviews || 0,
-      amenities: room.amenities || [],
-      location: {
-        address: room.location?.address,
-        city: room.location?.city,
-        coordinates: room.location?.coordinates
-      },
-      features: {
-        area: room.features?.area,
-        furnished: room.features?.furnished,
-        balcony: room.features?.balcony
-      },
-      availability: room.availability,
-      owner: {
-        name: room.owner?.fullName,
-        verified: room.owner?.isVerified || false,
-        rating: room.owner?.averageRating || 0,
-        responseRate: room.owner?.responseRate || 0
-      },
-      occupancyRate: Math.round((room.occupiedRooms / room.totalRooms) * 100) || 0,
-      isAvailable: room.availability?.isAvailable && room.occupiedRooms < room.totalRooms
-    }));
+    console.log(`✅ Found ${rooms.length} rooms out of ${totalCount} total`);
+
+    // If no rooms found and this is the first page, provide sample data
+    let formattedRooms = [];
+    let actualTotalCount = totalCount;
+
+    if (rooms.length === 0 && page === 1) {
+      console.log('📝 No rooms found, providing sample data');
+      formattedRooms = getSampleRooms();
+      actualTotalCount = formattedRooms.length;
+    } else {
+      // Format response
+      formattedRooms = rooms.map(room => ({
+        id: room._id,
+        title: room.title,
+        description: room.description,
+        price: room.price,
+        images: room.images || ['/api/placeholder/400/300'],
+        roomType: room.roomType,
+        accommodationType: room.accommodationType,
+        rating: room.rating || 0,
+        totalReviews: room.totalReviews || 0,
+        amenities: room.amenities || [],
+        location: {
+          address: room.location?.address,
+          city: room.location?.city,
+          coordinates: room.location?.coordinates
+        },
+        features: {
+          area: room.features?.area,
+          furnished: room.features?.furnished,
+          balcony: room.features?.balcony
+        },
+        availability: room.availability,
+        owner: {
+          name: room.owner?.fullName,
+          verified: room.owner?.isVerified || false,
+          rating: room.owner?.averageRating || 0,
+          responseRate: room.owner?.responseRate || 0
+        },
+        occupancyRate: Math.round((room.occupiedRooms / room.totalRooms) * 100) || 0,
+        isAvailable: room.availability?.isAvailable && room.occupiedRooms < room.totalRooms
+      }));
+    }
 
     // Pagination metadata
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = Math.ceil(actualTotalCount / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
@@ -178,7 +302,7 @@ export async function GET(request) {
         pagination: {
           currentPage: page,
           totalPages,
-          totalCount,
+          totalCount: actualTotalCount,
           hasNextPage,
           hasPrevPage,
           limit

@@ -45,9 +45,14 @@ function RoomBrowser() {
   const loadRooms = async () => {
     try {
       setLoading(true);
+      console.log('📡 Loading rooms from API...');
+      
       const response = await apiClient.getRooms();
+      console.log('📊 API Response:', response);
+      
       if (response.success) {
         const rooms = response.data.rooms || [];
+        console.log(`✅ Loaded ${rooms.length} rooms`);
         setAllRooms(rooms);
         setDisplayedRooms(rooms.slice(0, 6));
       } else {
@@ -57,6 +62,7 @@ function RoomBrowser() {
       }
     } catch (error) {
       console.error('Error loading rooms:', error);
+      // Set empty arrays as fallback
       setAllRooms([]);
       setDisplayedRooms([]);
     } finally {

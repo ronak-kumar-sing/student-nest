@@ -61,7 +61,9 @@ export async function POST(request) {
       city: propertyData.city,
       monthlyRent: propertyData.monthlyRent,
       amenitiesCount: propertyData.amenities?.length || 0,
-      imagesCount: propertyData.images?.length || 0
+      imagesCount: propertyData.images?.length || 0,
+      roomType: propertyData.roomType,
+      occupancyType: propertyData.occupancyType
     });
 
     await connectDB();
@@ -77,40 +79,82 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
+    // Process and validate images
+    let processedImages = [];
+    if (propertyData.images && Array.isArray(propertyData.images)) {
+      processedImages = propertyData.images
+        .filter(img => {
+          // Skip blob URLs and invalid images
+          if (typeof img === 'string') {
+            return img.startsWith('http://') || img.startsWith('https://');
+          }
+          return false;
+        });
+    }
+
+    // Map roomType values
+    let mappedRoomType = 'single';
+    if (propertyData.roomType === 'both' || propertyData.occupancyType === 'both') {
+      mappedRoomType = 'shared'; // Default to shared for 'both'
+    } else if (propertyData.roomType === 'single' || propertyData.occupancyType === 'single') {
+      mappedRoomType = 'single';
+    } else if (propertyData.roomType === 'shared' || propertyData.occupancyType === 'shared') {
+      mappedRoomType = 'shared';
+    } else if (propertyData.roomType === 'studio' || propertyData.occupancyType === 'studio') {
+      mappedRoomType = 'studio';
+    }
+
+    // Map and validate amenities
+    const validAmenities = ['wifi', 'ac', 'powerBackup', 'security', 'housekeeping', 'laundry', 'parking', 'gym', 'library', 'cafeteria', 'cctv', 'geyser', 'cooler', 'fridge', 'tv', 'bed', 'wardrobe', 'study_table', 'chair'];
+    const amenityMapping = {
+      'food': 'cafeteria',
+      'attached_bathroom': 'geyser', // Map to closest valid amenity
+      'fan': 'cooler',
+      'washing_machine': 'laundry',
+      'kitchen': 'cafeteria'
+    };
+    
+    let processedAmenities = [];
+    if (propertyData.amenities && Array.isArray(propertyData.amenities)) {
+      processedAmenities = propertyData.amenities
+        .map(amenity => amenityMapping[amenity] || amenity)
+        .filter(amenity => validAmenities.includes(amenity));
+    }
+
     // Create new room/property
     const newRoom = new Room({
       title: propertyData.title,
       description: propertyData.description || '',
       price: parseFloat(propertyData.monthlyRent),
       securityDeposit: parseFloat(propertyData.securityDeposit || 0),
-      roomType: propertyData.occupancyType || 'single',
+      roomType: mappedRoomType,
       accommodationType: propertyData.propertyType || 'pg',
 
       location: {
         address: propertyData.address,
         city: propertyData.city,
         state: propertyData.state || '',
-        pincode: propertyData.pincode || '',
+        pincode: propertyData.pincode || '000000',
         landmark: propertyData.landmark || '',
         fullAddress: `${propertyData.address}, ${propertyData.city}${propertyData.state ? ', ' + propertyData.state : ''}`,
         coordinates: {
-          lat: 0, // TODO: Get coordinates from address
-          lng: 0
+          lat: 28.6139, // Default Delhi coordinates
+          lng: 77.2090
         }
       },
 
-      amenities: propertyData.amenities || [],
+      amenities: processedAmenities,
 
       features: {
         area: parseInt(propertyData.roomSize || 100),
-        floor: 1,
-        totalFloors: 3,
+        floor: parseInt(propertyData.floor || 1),
+        totalFloors: parseInt(propertyData.totalFloors || 3),
         furnished: propertyData.furnishingStatus !== 'unfurnished',
-        balcony: false,
-        attached_bathroom: propertyData.bathroomType === 'attached'
+        balcony: propertyData.balcony === true || propertyData.balcony === 'true',
+        attached_bathroom: propertyData.bathroomType === 'attached' || propertyData.attached_bathroom === true
       },
 
-      images: propertyData.images || [],
+      images: processedImages,
 
       availability: {
         isAvailable: true,
@@ -134,6 +178,18 @@ export async function POST(request) {
         name: propertyData.contactName || user.fullName,
         phone: propertyData.contactPhone || user.phone,
         email: propertyData.contactEmail || user.email
+      }
+    });
+
+    // Log the final data before saving
+    console.log('Final room data before saving:', {
+      roomType: newRoom.roomType,
+      amenities: newRoom.amenities,
+      images: newRoom.images.length,
+      location: {
+        address: newRoom.location.address,
+        city: newRoom.location.city,
+        pincode: newRoom.location.pincode
       }
     });
 

@@ -59,8 +59,11 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
+    // Get user ID from token
+    const userId = decoded.userId || decoded.id;
+
     // Verify student exists
-    const student = await User.findById(decoded.userId || decoded.id);
+    const student = await User.findById(userId);
     if (!student || (student.role !== 'student' && student.role !== 'Student')) {
       return NextResponse.json({
         success: false,
@@ -71,7 +74,7 @@ export async function POST(request) {
     // Check if there's already a pending/confirmed meeting
     const existingMeeting = await Meeting.findOne({
       property: body.propertyId,
-      student: decoded.userId || decoded.id,
+      student: userId,
       status: { $in: ['pending', 'confirmed'] }
     });
 
@@ -104,7 +107,7 @@ export async function POST(request) {
     // Create meeting data
     const meetingData = {
       property: body.propertyId,
-      student: decoded.userId || decoded.id,
+      student: userId,
       owner: body.ownerId,
       preferredDates: validDates,
       meetingType: body.meetingType || 'physical',
@@ -177,8 +180,11 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit')) || 10;
     const skip = (page - 1) * limit;
 
+    // Get user ID from token (our JWT uses userId field)
+    const userId = decoded.userId || decoded.id;
+
     // Get user to determine role
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(userId);
     if (!user) {
       return NextResponse.json({
         success: false,
@@ -191,11 +197,11 @@ export async function GET(request) {
 
     if (user.role === 'student' || user.role === 'Student') {
       if (type === 'sent' || !type) {
-        query.student = decoded.userId || decoded.id;
+        query.student = userId;
       }
     } else if (user.role === 'owner' || user.role === 'Owner') {
       if (type === 'received' || !type) {
-        query.owner = decoded.userId || decoded.id;
+        query.owner = userId;
       }
     }
 

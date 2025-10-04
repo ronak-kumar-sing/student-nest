@@ -19,15 +19,105 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Target,
-  Eye
+  Eye,
+  Loader2
 } from "lucide-react";
+
+import apiClient from '@/lib/api';
 
 export default function OwnerAnalyticsPage() {
   const [timeRange, setTimeRange] = useState("30d");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState(null);
 
-  // Mock analytics data
-  const analyticsData = {
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [timeRange]);
+
+  const fetchAnalyticsData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiClient.getOwnerAnalytics('all');
+      if (response.success) {
+        // Transform API data to match component expectations
+        const transformedData = {
+          overview: {
+            totalRevenue: response.data.revenue?.allTime || 0,
+            revenueChange: response.data.revenue?.changePercentage || 0,
+            totalBookings: response.data.propertyPerformance?.reduce((sum, prop) => sum + prop.totalBookings, 0) || 0,
+            bookingsChange: 8.5, // Calculate this from historical data
+            averageOccupancy: 75, // Calculate from property data
+            occupancyChange: -2.1,
+            conversionRate: 68,
+            conversionChange: 12.3
+          },
+          propertyPerformance: response.data.propertyPerformance?.map(prop => ({
+            name: prop.title,
+            revenue: prop.totalBookings * 15000, // Estimated revenue
+            occupancy: Math.floor(Math.random() * 40 + 60), // Mock occupancy
+            bookings: prop.totalBookings,
+            rating: prop.averageRating
+          })) || [],
+          recentActivity: response.data.recentActivity || [],
+          visitRequests: response.data.visitRequests || null,
+          revenue: response.data.revenue || null,
+          monthlyTrends: [
+            { month: "Jan", revenue: 38000, bookings: 15, occupancy: 78 },
+            { month: "Feb", revenue: 42000, bookings: 18, occupancy: 82 },
+            { month: "Mar", revenue: 45000, bookings: 20, occupancy: 85 },
+            { month: "Apr", revenue: 41000, bookings: 17, occupancy: 80 },
+            { month: "May", revenue: 47000, bookings: 22, occupancy: 88 },
+            { month: "Jun", revenue: 52000, bookings: 24, occupancy: 92 }
+          ]
+        };
+        setAnalyticsData(transformedData);
+      } else {
+        // Set default data if API fails
+        setAnalyticsData({
+          overview: {
+            totalRevenue: 0,
+            revenueChange: 0,
+            totalBookings: 0,
+            bookingsChange: 0,
+            averageOccupancy: 0,
+            occupancyChange: 0,
+            conversionRate: 0,
+            conversionChange: 0
+          },
+          propertyPerformance: [],
+          recentActivity: [],
+          visitRequests: { total: 0, pending: 0, confirmed: 0, completed: 0 },
+          revenue: { allTime: 0, changePercentage: 0, activeBookings: [] },
+          monthlyTrends: []
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      // Set default empty data
+      setAnalyticsData({
+        overview: {
+          totalRevenue: 0,
+          revenueChange: 0,
+          totalBookings: 0,
+          bookingsChange: 0,
+          averageOccupancy: 0,
+          occupancyChange: 0,
+          conversionRate: 0,
+          conversionChange: 0
+        },
+        propertyPerformance: [],
+        recentActivity: [],
+        visitRequests: { total: 0, pending: 0, confirmed: 0, completed: 0 },
+        revenue: { allTime: 0, changePercentage: 0, activeBookings: [] },
+        monthlyTrends: []
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Mock monthly trends data (you can extend API to provide this)
+  const mockMonthlyTrends = {
     overview: {
       totalRevenue: 135000,
       revenueChange: 15.2,
@@ -72,6 +162,30 @@ export default function OwnerAnalyticsPage() {
     if (change < 0) return ArrowDownRight;
     return null;
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if data is not loaded yet
+  if (!analyticsData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading analytics data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -122,29 +236,29 @@ export default function OwnerAnalyticsPage() {
         {[
           {
             title: "Total Revenue",
-            value: `₹${analyticsData.overview.totalRevenue.toLocaleString()}`,
-            change: analyticsData.overview.revenueChange,
+            value: `₹${(analyticsData?.revenue?.allTime || 0).toLocaleString()}`,
+            change: analyticsData?.revenue?.changePercentage || 0,
             icon: DollarSign,
             color: "green"
           },
           {
             title: "Total Bookings",
-            value: analyticsData.overview.totalBookings,
-            change: analyticsData.overview.bookingsChange,
+            value: analyticsData?.revenue?.activeBookings?.length || 0,
+            change: 0,
             icon: Calendar,
             color: "blue"
           },
           {
-            title: "Avg Occupancy",
-            value: `${analyticsData.overview.averageOccupancy}%`,
-            change: analyticsData.overview.occupancyChange,
+            title: "Visit Requests",
+            value: analyticsData?.visitRequests?.total || 0,
+            change: analyticsData.visitRequests?.pending || 0,
             icon: Users,
             color: "purple"
           },
           {
-            title: "Conversion Rate",
-            value: `${analyticsData.overview.conversionRate}%`,
-            change: analyticsData.overview.conversionChange,
+            title: "Properties",
+            value: analyticsData.propertyPerformance?.length || 0,
+            change: 0,
             icon: Target,
             color: "orange"
           }
@@ -226,7 +340,7 @@ export default function OwnerAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analyticsData.monthlyTrends.map((month, index) => (
+                {(analyticsData.monthlyTrends || []).map((month, index) => (
                   <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
                     <div className="font-medium text-foreground">{month.month}</div>
                     <div className="flex items-center gap-6 text-sm">
