@@ -12,8 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { User, Shield } from "lucide-react"
+import { Shield } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
+import { DemoCredentials } from "@/components/auth/DemoCredentials"
 
 export default function StudentLoginPage() {
   const router = useRouter()
@@ -67,27 +68,8 @@ export default function StudentLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Demo Credentials */}
-          <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-sm font-bold text-blue-900 dark:text-blue-100 mb-2 flex items-center">
-              <User className="w-4 h-4 mr-2" />
-              Demo Student Account
-            </p>
-            <div className="space-y-1">
-              <p className="text-xs text-blue-700 dark:text-blue-200">
-                📧 Email: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">demo@student.test</span>
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-200">
-                📱 Phone: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">+918888888888</span>
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-200">
-                🔒 Password: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">DemoStudent123!</span>
-              </p>
-            </div>
-            <p className="text-xs text-blue-600 dark:text-blue-300 mt-2 italic">
-              Pre-configured for testing all student features
-            </p>
-          </div>
+          {/* Demo Credentials Component */}
+          <DemoCredentials type="student" />
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
             <InputField

@@ -12,8 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { User, Shield } from "lucide-react"
+import { Shield } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
+import { DemoCredentials } from "@/components/auth/DemoCredentials"
 
 export default function OwnerLoginPage() {
   const router = useRouter()
@@ -75,27 +76,8 @@ export default function OwnerLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Demo Credentials */}
-          <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
-            <p className="text-sm font-bold text-green-900 dark:text-green-100 mb-2 flex items-center">
-              <User className="w-4 h-4 mr-2" />
-              Demo Owner Account
-            </p>
-            <div className="space-y-1">
-              <p className="text-xs text-green-700 dark:text-green-200">
-                📧 Email: <span className="font-mono bg-green-100 dark:bg-green-800 px-1 rounded">demo@owner.test</span>
-              </p>
-              <p className="text-xs text-green-700 dark:text-green-200">
-                📱 Phone: <span className="font-mono bg-green-100 dark:bg-green-800 px-1 rounded">+917777777777</span>
-              </p>
-              <p className="text-xs text-green-700 dark:text-green-200">
-                🔒 Password: <span className="font-mono bg-green-100 dark:bg-green-800 px-1 rounded">DemoOwner123!</span>
-              </p>
-            </div>
-            <p className="text-xs text-green-600 dark:text-green-300 mt-2 italic">
-              Pre-configured with sample properties
-            </p>
-          </div>
+          {/* Demo Credentials Component */}
+          <DemoCredentials type="owner" />
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
             <InputField
