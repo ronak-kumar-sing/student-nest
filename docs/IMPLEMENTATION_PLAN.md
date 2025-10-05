@@ -131,59 +131,7 @@ npm list --depth=0
 
 ### PHASE 3: Environment Configuration
 
-#### Step 3.1: Create .env.local
-Copy the exact configuration from student-nest:
 
-```env
-# Application
-NODE_ENV=development
-NEXT_PUBLIC_APP_NAME=Student Nest
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# Database (CRITICAL - COPY FROM OLD PROJECT)
-MONGODB_URI=mongodb+srv://ronakkumar20062006:WcQd5ZksggAwO1oT@cluster0.969t4yr.mongodb.net/student-nest?retryWrites=true&w=majority&appName=Cluster0
-
-# JWT (CRITICAL - MUST MATCH OLD PROJECT)
-JWT_SECRET=2b9ecfec7253b488efd94bc40594b63f
-JWT_REFRESH_SECRET=2b9ecfec7253b488efd94bc40594b63f
-JWT_EXPIRES_IN=7d
-JWT_REFRESH_EXPIRES_IN=30d
-
-# Email - SendGrid Active
-EMAIL_SERVICE=sendgrid
-EMAIL_FROM=ronakkumarsingh23@lpu.in
-SENDGRID_API_KEY=***REMOVED***
-SENDGRID_FROM_EMAIL=ronakkumarsingh23@lpu.in
-
-# SMS - Twilio Active
-PHONE_SERVICE=twilio
-TWILIO_ACCOUNT_SID=***REMOVED***
-TWILIO_AUTH_TOKEN=806434567a8a820150b1a68e81c8d16b
-TWILIO_PHONE_NUMBER=+15642161675
-TWILIO_VERIFY_SID=VA75ff2923d12cff2725e510e5c2aceb10
-
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=dyvv2furt
-CLOUDINARY_API_KEY=155754953233623
-CLOUDINARY_API_SECRET=HlVegbT4tFVdEn59DO8wJZmswRA
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=dyvv2furt
-
-# Google OAuth
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=***REMOVED***
-GOOGLE_CLIENT_SECRET=***REMOVED***
-GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
-
-# Security
-BCRYPT_ROUNDS=12
-OTP_EXPIRY_MINUTES=5
-MAX_LOGIN_ATTEMPTS=5
-LOCK_TIME_HOURS=2
-
-# Feature Flags
-MOCK_VERIFICATION=true
-ENABLE_EMAIL_VERIFICATION=true
-ENABLE_SMS_VERIFICATION=true
-```
 
 **File to Create**:
 - `.env.local` in root

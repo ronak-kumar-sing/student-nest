@@ -1,7 +1,6 @@
 // Create demo room sharing data for testing
 const mongoose = require('mongoose');
 
-const MONGODB_URI = 'mongodb+srv://ronakkumar20062006:WcQd5ZksggAwO1oT@cluster0.969t4yr.mongodb.net/student-nest?retryWrites=true&w=majority&appName=Cluster0';
 
 async function createDemoData() {
   try {
