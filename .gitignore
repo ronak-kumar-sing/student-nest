@@ -10,8 +10,12 @@
 !.yarn/releases
 !.yarn/versions
 
+# Doc's stuff
+/docs
+
 # testing
 /coverage
+/scripts
 
 # next.js
 /.next/
@@ -39,3 +43,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
