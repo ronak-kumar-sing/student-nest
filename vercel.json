@@ -1,0 +1,17 @@
+{{
+
+  "buildCommand": "next build",  "buildCommand": "next build",
+
+  "devCommand": "next dev",  "devCommand": "next dev",
+
+  "installCommand": "npm install",  "installCommand": "npm install",
+
+  "framework": "nextjs",  "framework": "nextjs",
+
+  "regions": ["iad1"]  "regions": ["iad1"],
+
+}  "env": {
+
+    "NODE_ENV": "production"
+  }
+}
