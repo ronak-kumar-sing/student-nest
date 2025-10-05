@@ -20,15 +20,75 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 
+interface DashboardStats {
+  activeListings: number;
+  fullyBooked: number;
+  monthlyRevenue: number;
+  revenueChange: number;
+  pendingVisits: number;
+  totalMessages: number;
+  unreadMessages: number;
+  totalBookings: number;
+  occupancyRate: number;
+  averageRating: number;
+  totalReviews: number;
+  responseTime: string;
+  responseRate: number;
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    time: string;
+    icon: string;
+    color: string;
+  }>;
+  analytics: {
+    totalBookings: number;
+    bookingsChange: number;
+    occupancyRate: number;
+    occupancyChange: number;
+    avgResponseTime: string;
+    responseTimeChange: number;
+    overallRating: number;
+    ratingChange: number;
+  };
+}
+
 export default function OwnerDashboardPage() {
   const router = useRouter()
   const { user, isAuthenticated, loading } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true)
+        const response = await fetch('/api/dashboard/owner/stats')
+        const data = await response.json()
+
+        if (data.success) {
+          setStats(data.data)
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error)
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+
+    if (user && isAuthenticated) {
+      fetchStats()
+    }
+  }, [user, isAuthenticated])
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -45,9 +105,18 @@ export default function OwnerDashboardPage() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    // Simulate refresh
-    await new Promise(resolve => setTimeout(resolve, 500))
-    setIsRefreshing(false)
+    try {
+      const response = await fetch('/api/dashboard/owner/stats')
+      const data = await response.json()
+
+      if (data.success) {
+        setStats(data.data)
+      }
+    } catch (error) {
+      console.error('Error refreshing stats:', error)
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
   if (loading || !mounted) {
@@ -125,9 +194,9 @@ export default function OwnerDashboardPage() {
               <Home className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">5</div>
+              <div className="text-2xl font-bold">{statsLoading ? '...' : stats?.activeListings || 0}</div>
               <p className="text-xs text-muted-foreground">
-                2 fully booked
+                {statsLoading ? '...' : `${stats?.fullyBooked || 0} fully booked`}
               </p>
             </CardContent>
           </Card>
@@ -138,9 +207,11 @@ export default function OwnerDashboardPage() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₹45,000</div>
+              <div className="text-2xl font-bold">
+                {statsLoading ? '...' : `₹${stats?.monthlyRevenue?.toLocaleString() || 0}`}
+              </div>
               <p className="text-xs text-muted-foreground">
-                +12% from last month
+                {statsLoading ? '...' : `+${stats?.revenueChange || 0}% from last month`}
               </p>
             </CardContent>
           </Card>
@@ -151,7 +222,7 @@ export default function OwnerDashboardPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">7</div>
+              <div className="text-2xl font-bold">{statsLoading ? '...' : stats?.pendingVisits || 0}</div>
               <p className="text-xs text-muted-foreground">
                 This week
               </p>
@@ -164,9 +235,9 @@ export default function OwnerDashboardPage() {
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12</div>
+              <div className="text-2xl font-bold">{statsLoading ? '...' : stats?.totalMessages || 0}</div>
               <p className="text-xs text-muted-foreground">
-                5 unread
+                {statsLoading ? '...' : `${stats?.unreadMessages || 0} unread`}
               </p>
             </CardContent>
           </Card>
@@ -184,34 +255,45 @@ export default function OwnerDashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-sm font-medium">New booking request received</p>
-                    <p className="text-xs text-muted-foreground">1 hour ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-sm font-medium">Payment received - ₹15,000</p>
-                    <p className="text-xs text-muted-foreground">3 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-sm font-medium">Property listing approved</p>
-                    <p className="text-xs text-muted-foreground">6 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-sm font-medium">New review received</p>
-                    <p className="text-xs text-muted-foreground">1 day ago</p>
-                  </div>
-                </div>
+                {statsLoading ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Loading activity...</p>
+                ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
+                  stats.recentActivity.map((activity) => {
+                    const getColorClass = (color: string) => {
+                      const colors: Record<string, string> = {
+                        blue: 'bg-blue-500',
+                        green: 'bg-green-500',
+                        yellow: 'bg-yellow-500',
+                        orange: 'bg-orange-500',
+                        red: 'bg-red-500',
+                        purple: 'bg-purple-500'
+                      };
+                      return colors[color] || 'bg-gray-500';
+                    };
+
+                    const getTimeAgo = (time: string) => {
+                      const diff = Date.now() - new Date(time).getTime();
+                      const hours = Math.floor(diff / 3600000);
+                      const days = Math.floor(hours / 24);
+
+                      if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+                      if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+                      return 'Just now';
+                    };
+
+                    return (
+                      <div key={activity.id} className="flex items-start gap-3">
+                        <div className={`w-2 h-2 ${getColorClass(activity.color)} rounded-full mt-2`}></div>
+                        <div>
+                          <p className="text-sm font-medium">{activity.title}</p>
+                          <p className="text-xs text-muted-foreground">{getTimeAgo(activity.time)}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
+                )}
               </CardContent>
             </Card>
 
@@ -227,19 +309,27 @@ export default function OwnerDashboardPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Bookings</p>
-                    <p className="text-2xl font-bold">24</p>
+                    <p className="text-2xl font-bold">
+                      {statsLoading ? '...' : stats?.analytics?.totalBookings || 0}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Occupancy Rate</p>
-                    <p className="text-2xl font-bold">78%</p>
+                    <p className="text-2xl font-bold">
+                      {statsLoading ? '...' : `${stats?.analytics?.occupancyRate || 0}%`}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Avg. Response Time</p>
-                    <p className="text-2xl font-bold">2.5h</p>
+                    <p className="text-2xl font-bold">
+                      {statsLoading ? '...' : stats?.analytics?.avgResponseTime || 'N/A'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Rating</p>
-                    <p className="text-2xl font-bold">4.6★</p>
+                    <p className="text-2xl font-bold">
+                      {statsLoading ? '...' : `${stats?.analytics?.overallRating || 0}★`}
+                    </p>
                   </div>
                 </div>
               </CardContent>

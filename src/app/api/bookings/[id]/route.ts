@@ -12,11 +12,11 @@ async function verifyToken(request: NextRequest) {
 
   const token = authHeader.substring(7);
   const decoded = await verifyAccessToken(token);
-  
+
   if (!decoded || !decoded.userId) {
     throw new Error('Invalid token');
   }
-  
+
   return decoded;
 }
 
@@ -48,7 +48,7 @@ export async function GET(
     // Verify user has access to this booking
     const bookingStudent = (booking.student as any)?._id?.toString() || booking.student?.toString();
     const bookingOwner = (booking.owner as any)?._id?.toString() || booking.owner?.toString();
-    
+
     if (bookingStudent !== decoded.userId && bookingOwner !== decoded.userId) {
       return NextResponse.json({
         success: false,
@@ -106,7 +106,7 @@ export async function PUT(
     // Verify user has access to this booking
     const bookingStudent = booking.student?.toString();
     const bookingOwner = booking.owner?.toString();
-    
+
     if (bookingStudent !== decoded.userId && bookingOwner !== decoded.userId) {
       return NextResponse.json({
         success: false,
@@ -118,7 +118,7 @@ export async function PUT(
     if (body.status && bookingOwner === decoded.userId) {
       // Only owner can update status
       booking.status = body.status;
-      
+
       if (body.status === 'confirmed') {
         booking.confirmedAt = new Date();
       } else if (body.status === 'cancelled') {

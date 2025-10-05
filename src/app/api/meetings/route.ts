@@ -14,11 +14,11 @@ async function verifyToken(request: NextRequest) {
 
   const token = authHeader.substring(7);
   const decoded = await verifyAccessToken(token);
-  
+
   if (!decoded || !decoded.userId) {
     throw new Error('Invalid token');
   }
-  
+
   return decoded;
 }
 

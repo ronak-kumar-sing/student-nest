@@ -12,25 +12,25 @@ async function verifyToken(request: NextRequest) {
 
   const token = authHeader.substring(7);
   const decoded = await verifyAccessToken(token);
-  
+
   if (!decoded || !decoded.userId) {
     throw new Error('Invalid token');
   }
-  
+
   return decoded;
 }
 
 // PUT: Update meeting status
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
     // Verify authentication
     const decoded = await verifyToken(request);
-    const meetingId = params.id;
+    const { id: meetingId } = await params;
     const body = await request.json();
 
     // Fetch meeting
@@ -48,7 +48,7 @@ export async function PUT(
 
     // Get owner ID
     const meetingOwner = (meeting as any).owner?._id?.toString();
-    
+
     // Only property owner can update meeting status
     if (meetingOwner !== decoded.userId) {
       return NextResponse.json({

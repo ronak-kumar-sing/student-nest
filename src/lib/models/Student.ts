@@ -1,6 +1,23 @@
 import mongoose, { Schema } from 'mongoose';
 import User, { IUserDocument } from './User';
 
+// Compatibility Assessment Interface
+interface ICompatibilityAssessment {
+  sleepSchedule: 'early_bird' | 'night_owl' | 'flexible';
+  cleanliness: 'very_clean' | 'moderately_clean' | 'relaxed';
+  studyHabits: 'silent' | 'quiet' | 'moderate_noise' | 'flexible';
+  socialLevel: 'very_social' | 'moderately_social' | 'quiet' | 'prefer_alone';
+  cookingFrequency: 'daily' | 'often' | 'sometimes' | 'rarely';
+  musicPreference: 'silent' | 'low_volume' | 'moderate' | 'loud';
+  guestPolicy: 'no_guests' | 'rare_guests' | 'occasional_guests' | 'frequent_guests';
+  smokingTolerance: 'no_smoking' | 'outdoor_only' | 'tolerant';
+  petFriendly: 'love_pets' | 'okay_with_pets' | 'no_pets';
+  workSchedule: 'regular_hours' | 'flexible' | 'night_shift' | 'student_only';
+  sharingPreferences?: string[];
+  dealBreakers?: string[];
+  updatedAt?: Date;
+}
+
 // Interface for Student document
 interface IStudentDocument extends IUserDocument {
   collegeId: string;
@@ -24,6 +41,7 @@ interface IStudentDocument extends IUserDocument {
     verifiedAt?: Date;
     rejectionReason?: string;
   };
+  compatibilityAssessment?: ICompatibilityAssessment;
   lastActive: Date;
   viewCount: number;
   savedProperties: mongoose.Types.ObjectId[];
@@ -103,6 +121,51 @@ const studentSchema = new Schema<IStudentDocument>({
     verifiedAt: Date,
     rejectionReason: String
   },
+  compatibilityAssessment: {
+    sleepSchedule: {
+      type: String,
+      enum: ['early_bird', 'night_owl', 'flexible']
+    },
+    cleanliness: {
+      type: String,
+      enum: ['very_clean', 'moderately_clean', 'relaxed']
+    },
+    studyHabits: {
+      type: String,
+      enum: ['silent', 'quiet', 'moderate_noise', 'flexible']
+    },
+    socialLevel: {
+      type: String,
+      enum: ['very_social', 'moderately_social', 'quiet', 'prefer_alone']
+    },
+    cookingFrequency: {
+      type: String,
+      enum: ['daily', 'often', 'sometimes', 'rarely']
+    },
+    musicPreference: {
+      type: String,
+      enum: ['silent', 'low_volume', 'moderate', 'loud']
+    },
+    guestPolicy: {
+      type: String,
+      enum: ['no_guests', 'rare_guests', 'occasional_guests', 'frequent_guests']
+    },
+    smokingTolerance: {
+      type: String,
+      enum: ['no_smoking', 'outdoor_only', 'tolerant']
+    },
+    petFriendly: {
+      type: String,
+      enum: ['love_pets', 'okay_with_pets', 'no_pets']
+    },
+    workSchedule: {
+      type: String,
+      enum: ['regular_hours', 'flexible', 'night_shift', 'student_only']
+    },
+    sharingPreferences: [{ type: String }],
+    dealBreakers: [{ type: String }],
+    updatedAt: Date
+  },
   lastActive: {
     type: Date,
     default: Date.now
@@ -154,4 +217,4 @@ studentSchema.pre('save', function(next) {
 const Student = (User.discriminators?.Student || User.discriminator<IStudentDocument>('Student', studentSchema)) as mongoose.Model<IStudentDocument>;
 
 export default Student;
-export type { IStudentDocument };
+export type { IStudentDocument, ICompatibilityAssessment };

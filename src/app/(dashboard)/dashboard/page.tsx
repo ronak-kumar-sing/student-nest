@@ -57,7 +57,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Welcome Header */}
       <div className="border-b pb-6">
         <h1 className="text-3xl font-bold">

@@ -12,11 +12,11 @@ async function verifyToken(request: NextRequest) {
 
   const token = authHeader.substring(7);
   const decoded = await verifyAccessToken(token);
-  
+
   if (!decoded || !decoded.userId) {
     throw new Error('Invalid token');
   }
-  
+
   return decoded;
 }
 
@@ -47,7 +47,7 @@ export async function PUT(
 
     // Get room owner ID
     const roomOwner = (booking as any).room?.owner?.toString();
-    
+
     // Only room owner can update booking status
     if (roomOwner !== decoded.userId) {
       return NextResponse.json({

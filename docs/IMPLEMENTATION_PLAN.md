@@ -151,26 +151,26 @@ JWT_REFRESH_EXPIRES_IN=30d
 
 # Email - SendGrid Active
 EMAIL_SERVICE=sendgrid
-EMAIL_FROM=your-email@example.com
-SENDGRID_API_KEY=your_sendgrid_api_key_here
-SENDGRID_FROM_EMAIL=your-email@example.com
+EMAIL_FROM=ronakkumarsingh23@lpu.in
+SENDGRID_API_KEY=***REMOVED***
+SENDGRID_FROM_EMAIL=ronakkumarsingh23@lpu.in
 
 # SMS - Twilio Active
 PHONE_SERVICE=twilio
-TWILIO_ACCOUNT_SID=your_twilio_account_sid_here
-TWILIO_AUTH_TOKEN=your_twilio_auth_token_here
-TWILIO_PHONE_NUMBER=+1234567890
-TWILIO_VERIFY_SID=your_twilio_verify_sid_here
+TWILIO_ACCOUNT_SID=***REMOVED***
+TWILIO_AUTH_TOKEN=806434567a8a820150b1a68e81c8d16b
+TWILIO_PHONE_NUMBER=+15642161675
+TWILIO_VERIFY_SID=VA75ff2923d12cff2725e510e5c2aceb10
 
 # Cloudinary
-CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_CLOUD_NAME=dyvv2furt
+CLOUDINARY_API_KEY=155754953233623
+CLOUDINARY_API_SECRET=HlVegbT4tFVdEn59DO8wJZmswRA
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=dyvv2furt
 
 # Google OAuth
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_google_client_secret
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=***REMOVED***
+GOOGLE_CLIENT_SECRET=***REMOVED***
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 
 # Security

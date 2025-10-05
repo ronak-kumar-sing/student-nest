@@ -65,9 +65,21 @@ interface UserSidebarProps {
 }
 
 export function UserSidebar({ user, children }: UserSidebarProps) {
+  const pathname = usePathname();
+
   const items = React.useMemo(() => {
-    return NAV_ITEMS.filter((i) => !i.roles || i.roles.includes(user.role || "student"));
+    const userRole = user.role || 'student';
+    console.log("Filtering nav items for role:", userRole);
+    const filtered = NAV_ITEMS.filter((i) => !i.roles || i.roles.includes(userRole));
+    console.log("Filtered nav items:", filtered.length, filtered.map(i => i.label));
+    return filtered;
   }, [user.role]);
+
+  // Get current page title based on pathname
+  const currentPageTitle = React.useMemo(() => {
+    const currentItem = NAV_ITEMS.find(item => item.href === pathname);
+    return currentItem?.label || "StudentNest";
+  }, [pathname]);
 
   const handleLogout = () => {
     // Clear any stored tokens/session data
@@ -163,7 +175,7 @@ export function UserSidebar({ user, children }: UserSidebarProps) {
             <Separator orientation="vertical" className="mr-2 h-4" />
             <div className="flex items-center gap-2">
               <HomeIcon className="h-5 w-5 text-primary" />
-              <span className="text-sm font-semibold">StudentNest Dashboard</span>
+              <span className="text-sm font-semibold">{currentPageTitle}</span>
             </div>
           </header>
 

@@ -1,12 +1,12 @@
 'use client';
 
-import { Input, InputProps } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 import * as React from 'react';
 
-export interface InputFieldProps extends InputProps {
+export interface InputFieldProps extends React.ComponentProps<'input'> {
   id: string;
   label: string;
   error?: string;

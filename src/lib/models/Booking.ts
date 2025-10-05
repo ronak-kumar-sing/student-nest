@@ -142,6 +142,122 @@ const bookingSchema = new Schema<BookingDocument>(
       type: Number,
       default: 0,
     },
+    refundStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'completed', 'failed'],
+    },
+
+    // Check-in details
+    checkInDetails: {
+      checkedInAt: Date,
+      checkedInBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      notes: {
+        type: String,
+        maxlength: 500,
+      },
+      meterReadings: {
+        electricity: Number,
+        water: Number,
+        gas: Number,
+      },
+      roomCondition: {
+        type: String,
+        maxlength: 1000,
+      },
+      photos: [String],
+    },
+
+    // Check-out details
+    checkOutDetails: {
+      checkedOutAt: Date,
+      checkedOutBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      notes: {
+        type: String,
+        maxlength: 500,
+      },
+      meterReadings: {
+        electricity: Number,
+        water: Number,
+        gas: Number,
+      },
+      roomCondition: {
+        type: String,
+        maxlength: 1000,
+      },
+      photos: [String],
+      damageCharges: {
+        type: Number,
+        default: 0,
+      },
+      cleaningCharges: {
+        type: Number,
+        default: 0,
+      },
+      utilityCharges: {
+        type: Number,
+        default: 0,
+      },
+      finalSettlement: Number,
+    },
+
+    // Extension requests
+    extensionRequests: [
+      {
+        requestedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        requestedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        extensionMonths: {
+          type: Number,
+          required: true,
+          min: 1,
+          max: 12,
+        },
+        reason: {
+          type: String,
+          maxlength: 500,
+        },
+        newMoveOutDate: {
+          type: Date,
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: ['pending', 'approved', 'rejected'],
+          default: 'pending',
+        },
+        respondedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        respondedAt: Date,
+        rejectionReason: {
+          type: String,
+          maxlength: 500,
+        },
+      },
+    ],
+
+    // Review tracking
+    studentReviewSubmitted: {
+      type: Boolean,
+      default: false,
+    },
+    ownerReviewSubmitted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

@@ -27,10 +27,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   useEffect(() => {
     // Get user from localStorage
+    const accessToken = localStorage.getItem("accessToken");
     const token = localStorage.getItem("token");
     const userStr = localStorage.getItem("user");
 
-    if (!token || !userStr) {
+    const finalToken = accessToken || token;
+
+    if (!finalToken || !userStr) {
       // Not authenticated, redirect to login
       router.push("/");
       return;
@@ -38,8 +41,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     try {
       const userData = JSON.parse(userStr);
-      // Ensure signedIn is set to true
-      setUser({ ...userData, signedIn: true });
+      console.log("User data loaded:", userData);
+
+      // Normalize role to lowercase
+      const normalizedRole = userData.role?.toLowerCase() || userData.userType?.toLowerCase() || 'student';
+
+      // Ensure signedIn is set to true and role is properly set
+      setUser({
+        ...userData,
+        signedIn: true,
+        role: normalizedRole as "student" | "owner"
+      });
     } catch (error) {
       console.error("Error parsing user data:", error);
       router.push("/");

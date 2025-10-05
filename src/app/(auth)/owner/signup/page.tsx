@@ -26,13 +26,22 @@ export default function OwnerSignupPage() {
   const [otpOpen, setOtpOpen] = useState(false)
   const [otpChannel, setOtpChannel] = useState<"email" | "phone">("email")
   const [loading, setLoading] = useState(false)
+  const [sendingOtp, setSendingOtp] = useState(false)
 
-  async function onSubmit(values: any) {
+  // Log form errors whenever they change
+  console.log("Owner form errors:", errors)
+  console.log("Owner verification status:", { emailVerified, phoneVerified })
+
+  async function onSubmit(values: Record<string, unknown>) {
+    console.log("Owner submit started with values:", { ...values, password: "[REDACTED]" })
+
     if (!emailVerified || !phoneVerified) {
+      console.log("Verification check failed:", { emailVerified, phoneVerified })
       toast.error("Please verify your email and phone number to continue.")
       return
     }
 
+    console.log("Starting owner signup API call...")
     setLoading(true)
     try {
       const res = await fetch("/api/auth/owner/signup", {
@@ -41,37 +50,90 @@ export default function OwnerSignupPage() {
         body: JSON.stringify(values),
       })
 
+      console.log("API response status:", res.status, res.statusText)
       const data = await res.json()
+      console.log("API response data:", data)
 
-      if (res.ok) {
+      if (res.ok && data.success) {
         toast.success("Account created successfully! Welcome to Student Nest!")
 
-        // Store user data and tokens
-        if (data.success && data.user) {
-          localStorage.setItem("token", data.accessToken)
+        // Store user data and tokens (owner API returns them directly, not nested in data)
+        if (data.accessToken) {
+          console.log("Storing token and user data...")
+          localStorage.setItem("accessToken", data.accessToken)
           localStorage.setItem("user", JSON.stringify({
             ...data.user,
             userType: 'owner'
           }))
+          console.log("Token and user data stored successfully")
+        } else {
+          console.error("No accessToken in response:", data)
         }
 
         // Check if verification is required
         if (data.nextStep === 'verification') {
           toast.info("Please complete verification to activate all features.")
-          router.push("/verification")
+          console.log("Redirecting to verification in 500ms...")
+          setTimeout(() => {
+            router.push("/verification")
+          }, 500)
         } else {
           // Redirect to dashboard
-          router.push("/dashboard")
+          console.log("Redirecting to dashboard in 500ms...")
+          setTimeout(() => {
+            router.push("/dashboard")
+          }, 500)
         }
       } else {
-        toast.error(data.error || "Sign up failed. Please try again.")
+        console.error("Signup failed:", data)
+        toast.error(data.error || data.message || "Sign up failed. Please try again.")
       }
     } catch (error) {
+      console.error("Signup error:", error)
       toast.error("Network error. Please try again.")
     } finally {
       setLoading(false)
+      console.log("Owner signup process completed")
     }
   }
+
+  // Wrapper to catch validation errors
+  const handleFormSubmit = handleSubmit(
+    onSubmit,
+    (validationErrors) => {
+      console.log("Owner form validation failed:", validationErrors)
+
+      // Create user-friendly field names
+      const fieldNames: Record<string, string> = {
+        fullName: "Full Name",
+        email: "Email",
+        phone: "Phone Number",
+        password: "Password",
+        confirmPassword: "Confirm Password"
+      }
+
+      // Collect all error messages
+      const errorMessages: string[] = []
+
+      if (validationErrors.fullName) errorMessages.push(`• ${fieldNames.fullName}: ${validationErrors.fullName.message}`)
+      if (validationErrors.email) errorMessages.push(`• ${fieldNames.email}: ${validationErrors.email.message}`)
+      if (validationErrors.phone) errorMessages.push(`• ${fieldNames.phone}: ${validationErrors.phone.message}`)
+      if (validationErrors.password) errorMessages.push(`• ${fieldNames.password}: ${validationErrors.password.message}`)
+      if (validationErrors.confirmPassword) errorMessages.push(`• ${fieldNames.confirmPassword}: ${validationErrors.confirmPassword.message}`)
+
+      if (errorMessages.length > 0) {
+        // Show the first error as toast
+        const firstErrorField = Object.keys(validationErrors)[0]
+        const firstErrorMessage = validationErrors[firstErrorField as keyof typeof validationErrors]?.message
+        toast.error(firstErrorMessage || "Please check your input")
+
+        // Log all errors to console for debugging
+        console.error("Validation errors:\n" + errorMessages.join("\n"))
+      } else {
+        toast.error("Please fill in all required fields correctly.")
+      }
+    }
+  )
 
   async function sendOtp(kind: "email" | "phone") {
     const value = kind === "email" ? watch("email") : watch("phone")
@@ -80,6 +142,7 @@ export default function OwnerSignupPage() {
       return
     }
 
+    setSendingOtp(true)
     try {
       const res = await fetch(`/api/otp/${kind}/send`, {
         method: "POST",
@@ -97,6 +160,8 @@ export default function OwnerSignupPage() {
       }
     } catch (error) {
       toast.error("Network error. Please try again.")
+    } finally {
+      setSendingOtp(false)
     }
   }
 
@@ -135,7 +200,7 @@ export default function OwnerSignupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <form className="space-y-4" onSubmit={handleFormSubmit} noValidate>
             <InputField
               id="fullName"
               label="Full Name"
@@ -151,7 +216,6 @@ export default function OwnerSignupPage() {
                     id="email"
                     label="Email"
                     required
-                    type="email"
                     {...register("email")}
                     error={errors.email?.message as string}
                   />
@@ -162,10 +226,12 @@ export default function OwnerSignupPage() {
                     variant={emailVerified ? "secondary" : "outline"}
                     size="sm"
                     onClick={() => sendOtp("email")}
-                    disabled={emailVerified}
+                    disabled={emailVerified || sendingOtp}
                     className="whitespace-nowrap"
                   >
-                    {emailVerified ? (
+                    {sendingOtp && otpChannel === "email" ? (
+                      "Sending..."
+                    ) : emailVerified ? (
                       <>
                         <Badge variant="secondary" className="mr-1">✓</Badge>
                         Verified
@@ -192,10 +258,12 @@ export default function OwnerSignupPage() {
                   variant={phoneVerified ? "secondary" : "outline"}
                   size="sm"
                   onClick={() => sendOtp("phone")}
-                  disabled={phoneVerified}
+                  disabled={phoneVerified || sendingOtp}
                   className="whitespace-nowrap h-8 px-3"
                 >
-                  {phoneVerified ? (
+                  {sendingOtp && otpChannel === "phone" ? (
+                    "Sending..."
+                  ) : phoneVerified ? (
                     <>
                       <Badge variant="secondary" className="mr-1">✓</Badge>
                       Verified
@@ -219,7 +287,26 @@ export default function OwnerSignupPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-sm font-medium">
+                Confirm Password <span className="text-red-600">*</span>
+              </label>
+              <PasswordInput
+                id="confirmPassword"
+                {...register("confirmPassword")}
+                className={errors.confirmPassword ? "border-red-500" : ""}
+              />
+              {errors.confirmPassword && (
+                <p className="text-sm text-red-600">{errors.confirmPassword.message as string}</p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+              onClick={() => console.log("Owner Sign Up button clicked!", { loading, emailVerified, phoneVerified })}
+            >
               {loading ? "Creating Account..." : "Sign Up"}
             </Button>
           </form>

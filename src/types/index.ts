@@ -288,6 +288,49 @@ export interface Booking {
   cancellationReason?: string;
   cancelledBy?: string;
   refundAmount: number;
+  refundStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  checkInDetails?: {
+    checkedInAt?: Date;
+    checkedInBy?: string;
+    notes?: string;
+    meterReadings?: {
+      electricity?: number;
+      water?: number;
+      gas?: number;
+    };
+    roomCondition?: string;
+    photos?: string[];
+  };
+  checkOutDetails?: {
+    checkedOutAt?: Date;
+    checkedOutBy?: string;
+    notes?: string;
+    meterReadings?: {
+      electricity?: number;
+      water?: number;
+      gas?: number;
+    };
+    roomCondition?: string;
+    photos?: string[];
+    damageCharges?: number;
+    cleaningCharges?: number;
+    utilityCharges?: number;
+    finalSettlement?: number;
+  };
+  extensionRequests?: Array<{
+    _id?: string;
+    requestedBy: string;
+    requestedAt: Date;
+    extensionMonths: number;
+    reason?: string;
+    newMoveOutDate: Date;
+    status: 'pending' | 'approved' | 'rejected';
+    respondedBy?: string;
+    respondedAt?: Date;
+    rejectionReason?: string;
+  }>;
+  studentReviewSubmitted?: boolean;
+  ownerReviewSubmitted?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

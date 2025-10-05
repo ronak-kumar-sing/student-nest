@@ -26,13 +26,22 @@ export default function StudentSignupPage() {
   const [otpOpen, setOtpOpen] = useState(false)
   const [otpChannel, setOtpChannel] = useState<"email" | "phone">("email")
   const [loading, setLoading] = useState(false)
+  const [sendingOtp, setSendingOtp] = useState(false)
 
-  async function onSubmit(values: any) {
+  // Log form errors whenever they change
+  console.log("Form errors:", errors)
+  console.log("Verification status:", { emailVerified, phoneVerified })
+
+  async function onSubmit(values: Record<string, unknown>) {
+    console.log("Submit started with values:", { ...values, password: "[REDACTED]" })
+
     if (!emailVerified || !phoneVerified) {
+      console.log("Verification check failed:", { emailVerified, phoneVerified })
       toast.error("Please verify your email and phone number to continue.")
       return
     }
 
+    console.log("Starting signup API call...")
     setLoading(true)
     try {
       const res = await fetch("/api/auth/student/signup", {
@@ -41,31 +50,85 @@ export default function StudentSignupPage() {
         body: JSON.stringify(values),
       })
 
+      console.log("API response status:", res.status, res.statusText)
       const data = await res.json()
+      console.log("API response data:", data)
 
-      if (res.ok) {
+      if (res.ok && data.success) {
         toast.success("Account created successfully! Welcome to Student Nest!")
 
         // Store user data and redirect to home page
-        if (data.success && data.data) {
-          localStorage.setItem("token", data.data.token || data.data.accessToken)
+        if (data.data) {
+          console.log("Storing token and user data...")
+          localStorage.setItem("accessToken", data.data.accessToken)
           localStorage.setItem("user", JSON.stringify({
             ...data.data.user,
             userType: 'student'
           }))
+          console.log("Token and user data stored successfully")
+        } else {
+          console.error("No data.data in response:", data)
         }
 
         // Redirect to dashboard
-        router.push("/dashboard")
+        console.log("Redirecting to dashboard in 500ms...")
+        setTimeout(() => {
+          router.push("/dashboard")
+        }, 500)
       } else {
-        toast.error(data.error || "Sign up failed. Please try again.")
+        console.error("Signup failed:", data)
+        toast.error(data.error || data.message || "Sign up failed. Please try again.")
       }
     } catch (error) {
+      console.error("Signup error:", error)
       toast.error("Network error. Please try again.")
     } finally {
       setLoading(false)
+      console.log("Signup process completed")
     }
   }
+
+  // Wrapper to catch validation errors
+  const handleFormSubmit = handleSubmit(
+    onSubmit,
+    (validationErrors) => {
+      console.log("Form validation failed:", validationErrors)
+
+      // Create user-friendly field names
+      const fieldNames: Record<string, string> = {
+        fullName: "Full Name",
+        email: "Email",
+        phone: "Phone Number",
+        password: "Password",
+        confirmPassword: "Confirm Password",
+        collegeId: "College ID",
+        collegeName: "College Name"
+      }
+
+      // Collect all error messages
+      const errorMessages: string[] = []
+
+      if (validationErrors.fullName) errorMessages.push(`• ${fieldNames.fullName}: ${validationErrors.fullName.message}`)
+      if (validationErrors.email) errorMessages.push(`• ${fieldNames.email}: ${validationErrors.email.message}`)
+      if (validationErrors.phone) errorMessages.push(`• ${fieldNames.phone}: ${validationErrors.phone.message}`)
+      if (validationErrors.password) errorMessages.push(`• ${fieldNames.password}: ${validationErrors.password.message}`)
+      if (validationErrors.confirmPassword) errorMessages.push(`• ${fieldNames.confirmPassword}: ${validationErrors.confirmPassword.message}`)
+      if (validationErrors.collegeId) errorMessages.push(`• ${fieldNames.collegeId}: ${validationErrors.collegeId.message}`)
+      if (validationErrors.collegeName) errorMessages.push(`• ${fieldNames.collegeName}: ${validationErrors.collegeName.message}`)
+
+      if (errorMessages.length > 0) {
+        // Show the first error as toast
+        const firstErrorField = Object.keys(validationErrors)[0]
+        const firstErrorMessage = validationErrors[firstErrorField as keyof typeof validationErrors]?.message
+        toast.error(firstErrorMessage || "Please check your input")
+
+        // Log all errors to console for debugging
+        console.error("Validation errors:\n" + errorMessages.join("\n"))
+      } else {
+        toast.error("Please fill in all required fields correctly.")
+      }
+    }
+  )
 
   async function sendOtp(kind: "email" | "phone") {
     const value = kind === "email" ? watch("email") : watch("phone")
@@ -74,6 +137,7 @@ export default function StudentSignupPage() {
       return
     }
 
+    setSendingOtp(true)
     try {
       const res = await fetch(`/api/otp/${kind}/send`, {
         method: "POST",
@@ -81,16 +145,20 @@ export default function StudentSignupPage() {
         body: JSON.stringify({ value })
       })
 
+      const data = await res.json()
+
       if (res.ok) {
         setOtpChannel(kind)
         setOtpOpen(true)
         toast.success(`OTP sent to your ${kind}.`)
       } else {
-        const data = await res.json()
-        toast.error(data.message || `Failed to send OTP to ${kind}.`)
+        toast.error(data.error || data.message || `Failed to send OTP to ${kind}.`)
       }
     } catch (error) {
+      console.error("OTP send error:", error)
       toast.error("Network error. Please try again.")
+    } finally {
+      setSendingOtp(false)
     }
   }
 
@@ -129,7 +197,7 @@ export default function StudentSignupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <form className="space-y-4" onSubmit={handleFormSubmit} noValidate>
             <InputField
               id="fullName"
               label="Full Name"
@@ -145,7 +213,6 @@ export default function StudentSignupPage() {
                     id="email"
                     label="Email"
                     required
-                    type="email"
                     {...register("email")}
                     error={errors.email?.message as string}
                   />
@@ -156,10 +223,12 @@ export default function StudentSignupPage() {
                     variant={emailVerified ? "secondary" : "outline"}
                     size="sm"
                     onClick={() => sendOtp("email")}
-                    disabled={emailVerified}
+                    disabled={emailVerified || sendingOtp}
                     className="whitespace-nowrap"
                   >
-                    {emailVerified ? (
+                    {sendingOtp && otpChannel === "email" ? (
+                      "Sending..."
+                    ) : emailVerified ? (
                       <>
                         <Badge variant="secondary" className="mr-1">✓</Badge>
                         Verified
@@ -186,10 +255,12 @@ export default function StudentSignupPage() {
                   variant={phoneVerified ? "secondary" : "outline"}
                   size="sm"
                   onClick={() => sendOtp("phone")}
-                  disabled={phoneVerified}
+                  disabled={phoneVerified || sendingOtp}
                   className="whitespace-nowrap h-8 px-3"
                 >
-                  {phoneVerified ? (
+                  {sendingOtp && otpChannel === "phone" ? (
+                    "Sending..."
+                  ) : phoneVerified ? (
                     <>
                       <Badge variant="secondary" className="mr-1">✓</Badge>
                       Verified
@@ -213,6 +284,20 @@ export default function StudentSignupPage() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-sm font-medium">
+                Confirm Password <span className="text-red-600">*</span>
+              </label>
+              <PasswordInput
+                id="confirmPassword"
+                {...register("confirmPassword")}
+                className={errors.confirmPassword ? "border-red-500" : ""}
+              />
+              {errors.confirmPassword && (
+                <p className="text-sm text-red-600">{errors.confirmPassword.message as string}</p>
+              )}
+            </div>
+
             <InputField
               id="collegeId"
               label="College ID"
@@ -229,7 +314,12 @@ export default function StudentSignupPage() {
               error={errors.collegeName?.message as string}
             />
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+              onClick={() => console.log("Sign Up button clicked!", { loading, emailVerified, phoneVerified })}
+            >
               {loading ? "Creating Account..." : "Sign Up"}
             </Button>
           </form>

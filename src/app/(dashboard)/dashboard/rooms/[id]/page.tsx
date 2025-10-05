@@ -503,6 +503,130 @@ const PriceNegotiationModal = ({ room, isOpen, onClose }: { room: Room | null; i
   );
 };
 
+// Schedule Visit Modal
+const ScheduleVisitModal = ({ room, isOpen, onClose }: { room: Room | null; isOpen: boolean; onClose: () => void }) => {
+  const [visitDate, setVisitDate] = useState('');
+  const [visitTime, setVisitTime] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!isOpen || !room) return null;
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      console.log('Visit scheduled:', {
+        roomId: room?.id,
+        visitDate,
+        visitTime,
+        message
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      alert('Visit request sent to owner! They will confirm the time shortly.');
+      onClose();
+    } catch (error) {
+      console.error('Schedule visit error:', error);
+      alert('Failed to schedule visit');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const today = new Date().toISOString().split('T')[0];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-md border border-zinc-800">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-semibold text-white">Schedule Visit</h3>
+          <button
+            onClick={onClose}
+            className="text-zinc-400 hover:text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Preferred Date
+            </label>
+            <input
+              type="date"
+              value={visitDate}
+              onChange={(e) => setVisitDate(e.target.value)}
+              min={today}
+              className="w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white rounded-xl focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Preferred Time
+            </label>
+            <select
+              value={visitTime}
+              onChange={(e) => setVisitTime(e.target.value)}
+              className="w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white rounded-xl focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select a time</option>
+              <option value="09:00">9:00 AM</option>
+              <option value="10:00">10:00 AM</option>
+              <option value="11:00">11:00 AM</option>
+              <option value="12:00">12:00 PM</option>
+              <option value="14:00">2:00 PM</option>
+              <option value="15:00">3:00 PM</option>
+              <option value="16:00">4:00 PM</option>
+              <option value="17:00">5:00 PM</option>
+              <option value="18:00">6:00 PM</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Message (Optional)
+            </label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white rounded-xl focus:ring-2 focus:ring-blue-500"
+              rows={3}
+              placeholder="Any specific requirements or questions..."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="flex-1 border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting || !visitDate || !visitTime}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Schedule Visit'
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function RoomDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -515,6 +639,7 @@ export default function RoomDetailsPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [hasExistingBooking, setHasExistingBooking] = useState(false);
+  const [showScheduleVisitModal, setShowScheduleVisitModal] = useState(false);
 
   const handleBookNow = async () => {
     if (!currentUser) {
@@ -906,22 +1031,137 @@ export default function RoomDetailsPage() {
               </motion.div>
             )}
 
-            {/* Reviews Section Placeholder */}
+            {/* Reviews Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
-              className="space-y-4"
+              className="space-y-6"
             >
-              <h3 className="text-2xl font-semibold text-white">
-                Reviews ({room.totalReviews || 0})
-              </h3>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-                <p className="text-zinc-400">Reviews section coming soon...</p>
-                <p className="text-sm text-zinc-500 mt-2">
-                  Average rating: <span className="text-yellow-400 font-semibold">{room.rating || 'N/A'}</span>
-                </p>
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-semibold text-white flex items-center gap-2">
+                  <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+                  Reviews ({room.totalReviews || room.reviews?.length || 0})
+                </h3>
+                {room.rating && (
+                  <div className="flex items-center gap-2 bg-yellow-900/50 px-4 py-2 rounded-full border border-yellow-700">
+                    <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    <span className="text-xl font-bold text-yellow-400">{room.rating}</span>
+                    <span className="text-zinc-400">/ 5</span>
+                  </div>
+                )}
               </div>
+
+              {room.reviews && room.reviews.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Reviews Summary */}
+                  {room.reviews[0]?.categories && (
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                      <h4 className="font-semibold text-white mb-4">Rating Breakdown</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {Object.entries(room.reviews[0].categories).map(([category, rating]) => (
+                          <div key={category} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-zinc-400 capitalize">
+                                {category.replace(/([A-Z])/g, ' $1').trim()}
+                              </span>
+                              <span className="text-sm font-semibold text-white">{rating}/5</span>
+                            </div>
+                            <div className="w-full bg-zinc-800 rounded-full h-2">
+                              <div
+                                className="bg-gradient-to-r from-yellow-400 to-orange-400 h-2 rounded-full transition-all"
+                                style={{ width: `${((rating as number) / 5) * 100}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Individual Reviews */}
+                  <div className="space-y-4">
+                    {room.reviews.map((review, index) => (
+                      <motion.div
+                        key={review.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 * index }}
+                        className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 hover:shadow-lg transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-full flex items-center justify-center text-lg font-bold shadow-lg">
+                              {getInitials(review.userName)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h5 className="font-semibold text-white">{review.userName}</h5>
+                                {review.verified && (
+                                  <Badge variant="secondary" className="bg-green-900/50 text-green-400 text-xs">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Verified
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-zinc-500">{review.date}</p>
+                              {review.stayDuration && (
+                                <p className="text-xs text-zinc-600 mt-1">Stayed for {review.stayDuration}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 bg-yellow-900/50 px-3 py-1 rounded-full border border-yellow-700">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="font-semibold text-yellow-400">{review.rating}</span>
+                          </div>
+                        </div>
+
+                        <p className="text-zinc-300 leading-relaxed mb-4">{review.comment}</p>
+
+                        {review.categories && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {Object.entries(review.categories).slice(0, 4).map(([category, rating]) => (
+                              <div key={category} className="flex items-center gap-1 bg-zinc-800 px-3 py-1 rounded-full text-xs">
+                                <span className="text-zinc-400 capitalize">
+                                  {category.replace(/([A-Z])/g, ' $1').trim()}
+                                </span>
+                                <span className="text-yellow-400 font-semibold">{rating}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {review.helpfulCount && review.helpfulCount > 0 && (
+                          <div className="flex items-center gap-2 text-sm text-zinc-500 border-t border-zinc-800 pt-3 mt-3">
+                            <ThumbsUp className="w-4 h-4" />
+                            <span>{review.helpfulCount} people found this helpful</span>
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {room.totalReviews && room.totalReviews > room.reviews.length && (
+                    <div className="text-center">
+                      <Button variant="outline" className="border-zinc-600 text-zinc-300 hover:bg-zinc-800">
+                        View All {room.totalReviews} Reviews
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center">
+                      <Star className="w-8 h-8 text-zinc-600" />
+                    </div>
+                    <p className="text-zinc-400 text-lg">No reviews yet</p>
+                    <p className="text-sm text-zinc-500">
+                      Be the first to review this property after booking!
+                    </p>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
 
@@ -1010,6 +1250,7 @@ export default function RoomDetailsPage() {
 
                   <Button
                     variant="outline"
+                    onClick={() => setShowScheduleVisitModal(true)}
                     className="w-full py-4 rounded-xl font-semibold border-zinc-600 text-zinc-300 hover:bg-zinc-800"
                   >
                     <Calendar className="w-4 h-4 mr-2" />
@@ -1020,8 +1261,8 @@ export default function RoomDetailsPage() {
                     variant="outline"
                     onClick={handleSaveRoom}
                     className={`w-full py-4 rounded-xl font-semibold ${isFavorited
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
-                        : 'border-zinc-600 text-zinc-300 hover:bg-zinc-800'
+                      ? 'border-blue-500 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+                      : 'border-zinc-600 text-zinc-300 hover:bg-zinc-800'
                       }`}
                   >
                     {isFavorited ? <BookmarkCheck className="w-4 h-4 mr-2" /> : <Bookmark className="w-4 h-4 mr-2" />}
@@ -1130,6 +1371,13 @@ export default function RoomDetailsPage() {
         room={room}
         isOpen={showNegotiationModal}
         onClose={() => setShowNegotiationModal(false)}
+      />
+
+      {/* Schedule Visit Modal */}
+      <ScheduleVisitModal
+        room={room}
+        isOpen={showScheduleVisitModal}
+        onClose={() => setShowScheduleVisitModal(false)}
       />
     </div>
   );

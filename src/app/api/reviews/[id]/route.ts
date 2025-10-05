@@ -13,11 +13,11 @@ async function verifyToken(request: NextRequest) {
 
   const token = authHeader.substring(7);
   const decoded = await verifyAccessToken(token);
-  
+
   if (!decoded || !decoded.userId) {
     throw new Error('Invalid token');
   }
-  
+
   return decoded;
 }
 
@@ -85,7 +85,7 @@ export async function PUT(
 
     // Verify user owns this review
     const reviewStudent = (review.student as any)?.toString();
-    
+
     if (reviewStudent !== decoded.userId) {
       return NextResponse.json({
         success: false,
@@ -189,7 +189,7 @@ export async function DELETE(
 
     // Verify user owns this review
     const reviewStudent = (review.student as any)?.toString();
-    
+
     if (reviewStudent !== decoded.userId) {
       return NextResponse.json({
         success: false,

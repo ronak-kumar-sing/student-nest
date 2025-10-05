@@ -34,7 +34,7 @@ export default function StudentLoginPage() {
     }
   }, [isAuthenticated, authLoading, router])
 
-  async function onSubmit(values: any) {
+  async function onSubmit(values: { identifier: string; password: string }) {
     setLoading(true)
 
     try {
