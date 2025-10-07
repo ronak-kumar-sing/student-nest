@@ -544,7 +544,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - [ ] Messaging
 
 ### Version 1.1 (Planned)
-- [ ] Payment integration
+- [ ] Payment integration - Mock
 - [ ] Advanced search filters
 - [ ] Mobile app
 - [ ] Push notifications
