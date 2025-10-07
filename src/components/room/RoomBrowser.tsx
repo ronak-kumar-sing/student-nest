@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Heart, MapPin, Star, Users, Eye, Filter } from 'lucide-react';
 import apiClient from '@/lib/api';
 import Link from 'next/link';
+import Image from 'next/image';
 import FilterComponent from '@/components/filters/FilterComponent';
 
 interface Room {
@@ -40,7 +41,9 @@ function RoomBrowser() {
   const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [displayedRooms, setDisplayedRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false); // Hidden by default
+  const [savedRooms, setSavedRooms] = useState<Set<string>>(new Set());
+  const [savingRoom, setSavingRoom] = useState<string | null>(null);
 
   // Filter states
   const [priceRange, setPriceRange] = useState<number[]>([2000, 25000]);
@@ -100,9 +103,66 @@ function RoomBrowser() {
     }
   };
 
+  // Load saved rooms
+  const loadSavedRooms = async () => {
+    try {
+      const response = await apiClient.getSavedRooms();
+      console.log('📚 Saved rooms API response:', response);
+
+      if (response.success && response.data) {
+        // API returns { success: true, data: { savedRooms: [...], total: N } }
+        const rooms = response.data.savedRooms || response.data || [];
+        const savedIds = new Set<string>(
+          rooms.map((room: any) => String(room._id || room.id))
+        );
+        console.log('💾 Loaded saved room IDs:', Array.from(savedIds));
+        setSavedRooms(savedIds);
+      }
+    } catch (error) {
+      console.error('Error loading saved rooms:', error);
+    }
+  };
+
+  // Handle save/unsave room
+  const handleSaveRoom = async (roomId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setSavingRoom(roomId);
+    try {
+      if (savedRooms.has(roomId)) {
+        const response = await apiClient.unsaveRoom(roomId);
+        if (response.success) {
+          setSavedRooms(prev => {
+            const next = new Set(prev);
+            next.delete(roomId);
+            return next;
+          });
+        }
+      } else {
+        const response = await apiClient.saveRoom(roomId);
+        if (response.success) {
+          setSavedRooms(prev => new Set(prev).add(roomId));
+        }
+      }
+    } catch (error: any) {
+      console.error('Error saving room:', error);
+      alert(error.message || 'Failed to save room. Please login to continue.');
+    } finally {
+      setSavingRoom(null);
+    }
+  };
+
   // Apply filters
   const applyFilters = () => {
     let filtered = [...allRooms];
+
+    // Filter out fully booked rooms (availableRooms = 0)
+    filtered = filtered.filter((room: any) => {
+      const availableRooms = room.availability?.availableRooms ?? room.availableRooms;
+      // If availableRooms is 0, hide the room
+      return availableRooms === undefined || availableRooms > 0;
+    });
 
     // Price filter
     filtered = filtered.filter(
@@ -164,10 +224,12 @@ function RoomBrowser() {
       filtered = filtered.filter((room) => (room.rating || 0) >= ratingFilter);
     }
 
-    // Area filter
+    // Area filter - only apply if area data exists
     if (areaRange[0] !== 50 || areaRange[1] !== 500) {
       filtered = filtered.filter((room) => {
-        const area = room.features?.area || 0;
+        const area = room.features?.area;
+        // If area is not set, include the room (don't filter it out)
+        if (!area || area === 0) return true;
         return area >= areaRange[0] && area <= areaRange[1];
       });
     }
@@ -256,6 +318,7 @@ function RoomBrowser() {
   // Load rooms on component mount
   useEffect(() => {
     loadRooms();
+    loadSavedRooms();
   }, []);
 
   return (
@@ -274,29 +337,31 @@ function RoomBrowser() {
 
       {/* Main Content Area - Filter Sidebar + Results */}
       <div className="flex gap-6">
-        {/* Filter Sidebar - Desktop */}
-        <div className="hidden lg:block w-80 flex-shrink-0">
-          <FilterComponent
-            priceRange={priceRange}
-            setPriceRange={setPriceRange}
-            availabilityFilter={availabilityFilter}
-            setAvailabilityFilter={setAvailabilityFilter}
-            roomTypeFilter={roomTypeFilter}
-            setRoomTypeFilter={setRoomTypeFilter}
-            amenityFilter={amenityFilter}
-            setAmenityFilter={setAmenityFilter}
-            locationFilter={locationFilter}
-            setLocationFilter={setLocationFilter}
-            ratingFilter={ratingFilter}
-            setRatingFilter={setRatingFilter}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            areaRange={areaRange}
-            setAreaRange={setAreaRange}
-            onClearFilters={clearAllFilters}
-            activeFiltersCount={getActiveFiltersCount()}
-          />
-        </div>
+        {/* Filter Sidebar - Collapsible */}
+        {showFilters && (
+          <div className="w-full lg:w-80 flex-shrink-0">
+            <FilterComponent
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+              availabilityFilter={availabilityFilter}
+              setAvailabilityFilter={setAvailabilityFilter}
+              roomTypeFilter={roomTypeFilter}
+              setRoomTypeFilter={setRoomTypeFilter}
+              amenityFilter={amenityFilter}
+              setAmenityFilter={setAmenityFilter}
+              locationFilter={locationFilter}
+              setLocationFilter={setLocationFilter}
+              ratingFilter={ratingFilter}
+              setRatingFilter={setRatingFilter}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              areaRange={areaRange}
+              setAreaRange={setAreaRange}
+              onClearFilters={clearAllFilters}
+              activeFiltersCount={getActiveFiltersCount()}
+            />
+          </div>
+        )}
 
         {/* Results Area */}
         <div className="flex-1 space-y-6">
@@ -310,15 +375,14 @@ function RoomBrowser() {
                 )}
               </p>
             </div>
-            {/* Mobile Filter Toggle */}
+            {/* Filter Toggle Button */}
             <Button
               variant="outline"
               size="sm"
-              className="lg:hidden"
               onClick={() => setShowFilters(!showFilters)}
             >
               <Filter className="h-4 w-4 mr-2" />
-              Filters
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
               {getActiveFiltersCount() > 0 && (
                 <Badge variant="secondary" className="ml-2">
                   {getActiveFiltersCount()}
@@ -341,17 +405,45 @@ function RoomBrowser() {
               {displayedRooms.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {displayedRooms.map(room => (
-                    <Card key={room.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <Card key={room.id} className="overflow-hidden hover:shadow-lg transition-shadow relative">
+                      {/* Save/Heart Button */}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute top-4 right-4 z-20 bg-white/90 hover:bg-white shadow-md"
+                        onClick={(e) => handleSaveRoom(room.id, e)}
+                        disabled={savingRoom === room.id}
+                      >
+                        {savingRoom === room.id ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Heart
+                            className={`h-5 w-5 ${savedRooms.has(room.id)
+                              ? 'fill-red-500 text-red-500'
+                              : 'text-gray-600'
+                              }`}
+                          />
+                        )}
+                      </Button>
+
                       <Link href={`/dashboard/rooms/${room.id}`}>
-                        <div className="relative">
-                          <div className="h-48 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900" />
+                        <div className="relative h-48 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900">
+                          {room.images && room.images.length > 0 ? (
+                            <Image
+                              src={room.images[0]}
+                              alt={room.title}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            />
+                          ) : null}
                           {(room.verified || room.owner?.verified) && (
-                            <Badge className="absolute top-2 left-2 bg-green-500">
+                            <Badge className="absolute top-2 left-2 bg-green-500 z-10">
                               Verified
                             </Badge>
                           )}
                           {room.availability?.isAvailable && (
-                            <Badge className="absolute top-2 right-2 bg-blue-500">
+                            <Badge className="absolute bottom-2 left-2 bg-blue-500 z-10">
                               Available
                             </Badge>
                           )}

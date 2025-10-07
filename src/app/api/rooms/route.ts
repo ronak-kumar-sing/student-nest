@@ -5,122 +5,6 @@ import User from '@/lib/models/User';
 import { verifyAccessToken } from '@/lib/utils/jwt';
 import mongoose from 'mongoose';
 
-// Generate consistent ObjectIds for sample data
-const sampleRoomIds = [
-  new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
-  new mongoose.Types.ObjectId('507f1f77bcf86cd799439012'),
-  new mongoose.Types.ObjectId('507f1f77bcf86cd799439013'),
-];
-
-// Sample rooms data for when database is empty
-const sampleRooms = [
-  {
-    id: sampleRoomIds[0].toString(),
-    _id: sampleRoomIds[0].toString(),
-    title: 'Cozy Single Room near IIT Delhi',
-    description: 'Perfect for students with all modern amenities and excellent connectivity.',
-    price: 8000,
-    images: ['/api/placeholder/800/600'],
-    roomType: 'single',
-    accommodationType: 'pg',
-    rating: 4.5,
-    totalReviews: 23,
-    amenities: ['wifi', 'ac', 'powerBackup', 'security', 'laundry'],
-    location: {
-      address: 'Hauz Khas',
-      city: 'Delhi',
-      coordinates: { lat: 28.5494, lng: 77.1926 },
-    },
-    features: {
-      area: 120,
-      furnished: true,
-      balcony: false,
-    },
-    availability: {
-      isAvailable: true,
-      availableFrom: new Date().toISOString().split('T')[0],
-    },
-    owner: {
-      name: 'Rajesh Kumar',
-      verified: true,
-      rating: 4.7,
-      responseRate: 95,
-    },
-    occupancyRate: 80,
-    isAvailable: true,
-  },
-  {
-    id: sampleRoomIds[1].toString(),
-    _id: sampleRoomIds[1].toString(),
-    title: 'Shared Room - Budget Friendly',
-    description: 'Affordable shared accommodation with good facilities near metro station.',
-    price: 6000,
-    images: ['/api/placeholder/800/600'],
-    roomType: 'shared',
-    accommodationType: 'pg',
-    rating: 4.2,
-    totalReviews: 15,
-    amenities: ['wifi', 'security', 'housekeeping', 'laundry'],
-    location: {
-      address: 'Mukherjee Nagar',
-      city: 'Delhi',
-      coordinates: { lat: 28.7041, lng: 77.2025 },
-    },
-    features: {
-      area: 150,
-      furnished: true,
-      balcony: true,
-    },
-    availability: {
-      isAvailable: true,
-      availableFrom: new Date().toISOString().split('T')[0],
-    },
-    owner: {
-      name: 'Priya Sharma',
-      verified: true,
-      rating: 4.5,
-      responseRate: 88,
-    },
-    occupancyRate: 60,
-    isAvailable: true,
-  },
-  {
-    id: sampleRoomIds[2].toString(),
-    _id: sampleRoomIds[2].toString(),
-    title: 'Spacious Studio Apartment',
-    description: 'Modern studio apartment with all amenities and 24/7 security.',
-    price: 12000,
-    images: ['/api/placeholder/800/600'],
-    roomType: 'studio',
-    accommodationType: 'apartment',
-    rating: 4.8,
-    totalReviews: 31,
-    amenities: ['wifi', 'ac', 'powerBackup', 'security', 'gym', 'parking'],
-    location: {
-      address: 'Sector 62',
-      city: 'Noida',
-      coordinates: { lat: 28.6260, lng: 77.3631 },
-    },
-    features: {
-      area: 250,
-      furnished: true,
-      balcony: true,
-    },
-    availability: {
-      isAvailable: true,
-      availableFrom: new Date().toISOString().split('T')[0],
-    },
-    owner: {
-      name: 'Amit Patel',
-      verified: true,
-      rating: 4.9,
-      responseRate: 98,
-    },
-    occupancyRate: 90,
-    isAvailable: true,
-  },
-];
-
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -235,9 +119,16 @@ export async function GET(request: NextRequest) {
       // This will be applied after population
     }
 
-    // Only show active and available rooms by default
-    filter.status = searchParams.get('includeInactive') === 'true' ? { $in: ['active', 'inactive'] } : 'active';
-    filter['availability.isAvailable'] = searchParams.get('includeUnavailable') === 'true' ? { $in: [true, false] } : true;
+    // Only show active and available rooms by default (but be flexible for testing)
+    // Don't filter by status if not explicitly requested - show all rooms for now
+    if (searchParams.get('status')) {
+      filter.status = searchParams.get('status');
+    }
+
+    // Show both available and unavailable for testing unless explicitly filtered
+    if (searchParams.get('availableOnly') === 'true') {
+      filter['availability.isAvailable'] = true;
+    }
 
     // Advanced search functionality
     const search = searchParams.get('search');
@@ -323,24 +214,6 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const total = await Room.countDocuments(filter);
 
-    // If no rooms found, return sample data for demo
-    if (total === 0 && !search && !city) {
-      return NextResponse.json({
-        success: true,
-        data: sampleRooms,
-        pagination: {
-          page,
-          limit,
-          total: sampleRooms.length,
-          totalPages: 1,
-          hasNextPage: false,
-          hasPrevPage: false,
-        },
-        filters: Object.fromEntries(searchParams),
-        message: 'Showing sample properties. No real listings found.',
-      });
-    }
-
     // Fetch rooms with owner information
     const rooms = await Room.find(filter)
       .populate('owner', 'fullName email phone profilePhoto isVerified emailVerified phoneVerified averageRating responseRate businessName')
@@ -392,7 +265,8 @@ export async function GET(request: NextRequest) {
         },
         availability: {
           isAvailable: room.availability.isAvailable,
-          availableRooms: room.availability.availableRooms,
+          availableRooms: room.availability.availableRooms ?? room.availability.totalRooms ?? 1,
+          totalRooms: room.availability.totalRooms ?? 1,
           availableFrom: room.availability.availableFrom,
         },
         owner: {
@@ -408,7 +282,7 @@ export async function GET(request: NextRequest) {
         occupancyRate,
         totalRooms: room.totalRooms,
         occupiedRooms: room.occupiedRooms,
-        isAvailable: room.availability.isAvailable && room.availability.availableRooms > 0,
+        isAvailable: room.availability.isAvailable && ((room.availability.availableRooms ?? room.availability.totalRooms ?? 1) > 0),
         createdAt: room.createdAt,
         updatedAt: room.updatedAt,
       };

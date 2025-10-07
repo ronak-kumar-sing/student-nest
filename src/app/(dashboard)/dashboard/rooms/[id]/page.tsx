@@ -28,12 +28,15 @@ import {
   Maximize,
   X,
   Clock,
+  Video,
   DollarSign,
   Zap,
   Award,
   ThumbsUp,
   Loader2,
+  UserPlus,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import apiClient from '@/lib/api';
 
@@ -505,8 +508,11 @@ const PriceNegotiationModal = ({ room, isOpen, onClose }: { room: Room | null; i
 
 // Schedule Visit Modal
 const ScheduleVisitModal = ({ room, isOpen, onClose }: { room: Room | null; isOpen: boolean; onClose: () => void }) => {
+  const router = useRouter(); // Add router hook
   const [visitDate, setVisitDate] = useState('');
   const [visitTime, setVisitTime] = useState('');
+  const [meetingType, setMeetingType] = useState<'physical' | 'virtual'>('physical');
+  const [meetingLink, setMeetingLink] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -515,20 +521,34 @@ const ScheduleVisitModal = ({ room, isOpen, onClose }: { room: Room | null; isOp
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      console.log('Visit scheduled:', {
-        roomId: room?.id,
-        visitDate,
-        visitTime,
-        message
+
+      // Call real API endpoint for scheduling visit
+      const response = await apiClient.request('/meetings/schedule', {
+        method: 'POST',
+        body: JSON.stringify({
+          propertyId: room?.id,
+          requestedDate: visitDate,
+          requestedTime: visitTime,
+          meetingType: meetingType,
+          meetingLink: meetingType === 'virtual' ? meetingLink : undefined,
+          message: message || 'Property viewing request'
+        })
       });
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (response.success) {
+        alert('Visit request sent to owner! They will confirm the time shortly.');
+        onClose();
 
-      alert('Visit request sent to owner! They will confirm the time shortly.');
-      onClose();
-    } catch (error) {
+        // Optional: Redirect to visiting schedule to see the request
+        setTimeout(() => {
+          router.push('/dashboard/visiting-schedule');
+        }, 1000);
+      } else {
+        alert(response.error || 'Failed to schedule visit. Please try again.');
+      }
+    } catch (error: any) {
       console.error('Schedule visit error:', error);
-      alert('Failed to schedule visit');
+      alert(error.message || 'Failed to schedule visit. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -550,6 +570,55 @@ const ScheduleVisitModal = ({ room, isOpen, onClose }: { room: Room | null; isOp
         </div>
 
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Meeting Type
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setMeetingType('physical')}
+                className={`px-4 py-3 rounded-xl border-2 transition-all ${meetingType === 'physical'
+                    ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                    : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <span>Physical Visit</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMeetingType('virtual')}
+                className={`px-4 py-3 rounded-xl border-2 transition-all ${meetingType === 'virtual'
+                    ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                    : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <Video className="w-4 h-4" />
+                  <span>Online</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {meetingType === 'virtual' && (
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Meeting Link (Optional)
+              </label>
+              <input
+                type="url"
+                value={meetingLink}
+                onChange={(e) => setMeetingLink(e.target.value)}
+                className="w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white rounded-xl focus:ring-2 focus:ring-blue-500"
+                placeholder="Google Meet or Zoom link..."
+              />
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-white mb-2">
               Preferred Date
@@ -643,13 +712,16 @@ export default function RoomDetailsPage() {
 
   const handleBookNow = async () => {
     if (!currentUser) {
-      alert('Please login to book this room');
+      toast.error('Please login to book this room');
       router.push('/student/login?redirect=' + encodeURIComponent(`/dashboard/rooms/${id}/book`));
       return;
     }
 
-    if (currentUser.userType !== 'student') {
-      alert('Only students can book rooms');
+    if (currentUser.userType !== 'student' && (currentUser as any).role !== 'student' && (currentUser as any).role !== 'Student') {
+      toast.error('Only students can book rooms', {
+        description: 'Owners cannot book rooms. Please use a student account.',
+        duration: 4000
+      });
       return;
     }
 
@@ -660,7 +732,7 @@ export default function RoomDetailsPage() {
 
       const userId = currentUser._id || currentUser.id;
       if (!userId) {
-        alert('Invalid user session. Please login again.');
+        toast.error('Invalid user session. Please login again.');
         return;
       }
 
@@ -669,36 +741,89 @@ export default function RoomDetailsPage() {
 
       if (validationResponse.success) {
         if (validationResponse.data.canBook) {
-          router.push(`/dashboard/rooms/${id}/book`);
+          // Create booking directly instead of navigating
+          try {
+            const bookingData = {
+              roomId: room.id,
+              moveInDate: selectedDate || room.availability.availableFrom,
+              duration: 12, // Default 12 months
+            };
+
+            const bookingResponse = await apiClient.createBooking(bookingData);
+
+            if (bookingResponse.success) {
+              toast.success('Booking request sent!', {
+                description: 'Your booking request has been sent to the owner.',
+                duration: 5000
+              });
+
+              // Refresh room status
+              setHasExistingBooking(true);
+
+              // Navigate to bookings page after short delay
+              setTimeout(() => {
+                router.push('/dashboard/bookings');
+              }, 2000);
+            } else {
+              toast.error('Booking failed', {
+                description: bookingResponse.error || 'Failed to create booking request',
+                duration: 4000
+              });
+            }
+          } catch (bookingError: any) {
+            toast.error('Error creating booking', {
+              description: bookingError.message || 'Failed to create booking',
+              duration: 4000
+            });
+          }
         } else {
           const reason = validationResponse.data.reason;
-          let message = 'You are not eligible to book this room.';
 
           switch (reason) {
             case 'ACTIVE_BOOKING_EXISTS':
-              message = 'You already have an active booking. Students can only book one room at a time. Please complete or cancel your current booking first.';
+              toast.error('Active booking exists', {
+                description: 'You already have an active booking. Students can only book one room at a time.',
+                duration: 5000
+              });
               setTimeout(() => {
                 router.push('/dashboard/bookings');
               }, 2000);
               break;
             case 'ROOM_NOT_AVAILABLE':
-              message = 'This room is currently not available for booking.';
+              toast.error('Room not available', {
+                description: 'This room is currently not available for booking.',
+                duration: 4000
+              });
               break;
             case 'DUPLICATE_ROOM_BOOKING':
-              message = 'You already have a booking for this room.';
+              toast.error('Duplicate booking', {
+                description: 'You already have a booking for this room.',
+                duration: 4000
+              });
               setTimeout(() => {
                 router.push('/dashboard/bookings');
               }, 2000);
               break;
+            default:
+              toast.error('Cannot book room', {
+                description: validationResponse.data.reason || 'You are not eligible to book this room.',
+                duration: 4000
+              });
           }
-
-          alert(message);
         }
       } else {
-        alert(validationResponse.error || 'Failed to validate booking eligibility');
+        toast.error('Validation failed', {
+          description: validationResponse.error || 'Failed to validate booking eligibility',
+          duration: 4000
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Booking validation error:', error);
+      toast.error('Error occurred', {
+        description: error.message || 'An error occurred while validating your booking',
+        duration: 4000
+      });
+      // Still allow navigation as fallback
       router.push(`/dashboard/rooms/${id}/book`);
     } finally {
       setBookingLoading(false);
@@ -1276,6 +1401,15 @@ export default function RoomDetailsPage() {
                   >
                     <Share2 className="w-4 h-4 mr-2" />
                     Share Room
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/dashboard/post-room-sharing?roomId=${room.id}`)}
+                    className="w-full py-4 rounded-xl font-semibold bg-purple-600/10 border-purple-500 text-purple-400 hover:bg-purple-600/20"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Post for Room Sharing
                   </Button>
                 </div>
 

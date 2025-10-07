@@ -144,9 +144,15 @@ export default function SavedPage() {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() => handleRemoveFromSaved(property.id)}
+                disabled={removingId === property.id}
                 className="absolute top-2 right-2 bg-white/80 hover:bg-white text-red-500"
               >
-                <Heart className="h-4 w-4 fill-current" />
+                {removingId === property.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Heart className="h-4 w-4 fill-current" />
+                )}
               </Button>
               {(property.verified || property.owner?.verified) && (
                 <Badge className="absolute top-2 left-2 bg-green-500">

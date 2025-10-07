@@ -1,70 +1,121 @@
 import { NextResponse } from 'next/server';
-
-// Simulate database - in production, replace with actual database calls
-let meetingRequests = [];
-let nextId = 1;
+import connectDB from '@/lib/db/connection';
+import Meeting from '@/lib/models/Meeting';
+import Room from '@/lib/models/Room';
+import User from '@/lib/models/User';
+import { verifyAccessToken } from '@/lib/utils/jwt';
 
 export async function POST(request) {
   try {
+    await connectDB();
+
+    // Verify authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Please login' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = await verifyAccessToken(token);
+
+    if (!decoded || !decoded.userId) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { propertyId, meetingType, requestedDate, requestedTime, notes } = body;
+    const {
+      propertyId,
+      meetingType,      // 'physical' or 'virtual'
+      requestedDate,
+      requestedTime,
+      message,          // Optional message from student
+      meetingLink,      // Optional - for virtual meetings
+      numberOfStudents, // Optional - how many students will visit
+      studentEmail      // Optional - student email for confirmation
+    } = body;
 
-    // Get user info from auth token (simplified for demo)
-    // In production, decode JWT token to get user info
-    const studentId = 1; // Mock student ID
-
-    // Validation
-    if (!propertyId || !meetingType || !requestedDate || !requestedTime) {
+    // Validation - only propertyId, date and time are required
+    if (!propertyId || !requestedDate || !requestedTime) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { success: false, error: 'Missing required fields: propertyId, requestedDate, requestedTime' },
         { status: 400 }
       );
     }
 
-    if (!['online', 'offline'].includes(meetingType)) {
-      return NextResponse.json(
-        { error: 'Invalid meeting type. Must be online or offline' },
-        { status: 400 }
-      );
-    }
+    // Validate and set meetingType - default to 'physical'
+    const validMeetingType = meetingType === 'virtual' ? 'virtual' : 'physical';
 
     // Check if meeting time is in the future
     const meetingDateTime = new Date(`${requestedDate}T${requestedTime}`);
     if (meetingDateTime <= new Date()) {
       return NextResponse.json(
-        { error: 'Meeting time must be in the future' },
+        { success: false, error: 'Meeting time must be in the future' },
         { status: 400 }
       );
     }
 
+    // Verify student exists
+    const student = await User.findById(decoded.userId);
+    if (!student || (student.role !== 'student' && student.role !== 'Student')) {
+      return NextResponse.json(
+        { success: false, error: 'Only students can schedule visits' },
+        { status: 403 }
+      );
+    }
+
+    // Verify room exists and get owner
+    const room = await Room.findById(propertyId).populate('owner');
+    if (!room) {
+      return NextResponse.json(
+        { success: false, error: 'Room not found' },
+        { status: 404 }
+      );
+    }
+
     // Create new meeting request
-    const newMeetingRequest = {
-      id: nextId++,
-      studentId,
-      ownerId: 2, // Mock owner ID - in production, get from property
-      propertyId: parseInt(propertyId),
-      meetingType,
-      requestedDate,
-      requestedTime,
+    const meetingData = {
+      property: propertyId,
+      student: decoded.userId,
+      owner: room.owner._id,
+      meetingType: validMeetingType,
+      preferredDates: [meetingDateTime],
       status: 'pending',
-      studentNotes: notes || '',
-      ownerResponse: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      purpose: 'property_viewing',
+      studentNotes: message || '',
     };
 
-    meetingRequests.push(newMeetingRequest);
+    // Add virtual meeting details if it's a virtual meeting
+    if (validMeetingType === 'virtual' && meetingLink) {
+      meetingData.virtualMeetingDetails = {
+        platform: 'google_meet', // or detect from link
+        meetingLink: meetingLink
+      };
+    }
+
+    const meeting = await Meeting.create(meetingData);
+
+    await meeting.populate([
+      { path: 'property', select: 'title location images' },
+      { path: 'student', select: 'fullName phone email' },
+      { path: 'owner', select: 'fullName phone email' }
+    ]);
 
     return NextResponse.json({
       success: true,
-      data: newMeetingRequest,
-      message: 'Meeting request created successfully'
+      data: meeting,
+      message: 'Visit request sent successfully! The owner will respond soon.'
     });
 
   } catch (error) {
     console.error('Error creating meeting request:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
@@ -72,32 +123,54 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    // Get query parameters
-    const { searchParams } = new URL(request.url);
-    const studentId = searchParams.get('studentId');
-    const ownerId = searchParams.get('ownerId');
+    await connectDB();
 
-    let filteredRequests = meetingRequests;
-
-    if (studentId) {
-      filteredRequests = meetingRequests.filter(
-        req => req.studentId === parseInt(studentId)
-      );
-    } else if (ownerId) {
-      filteredRequests = meetingRequests.filter(
-        req => req.ownerId === parseInt(ownerId)
+    // Verify authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
+    const token = authHeader.substring(7);
+    const decoded = await verifyAccessToken(token);
+
+    if (!decoded || !decoded.userId) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const filter = {};
+
+    // Filter by user role
+    const user = await User.findById(decoded.userId);
+    if (user.role === 'student' || user.role === 'Student') {
+      filter.student = decoded.userId;
+    } else if (user.role === 'owner' || user.role === 'Owner') {
+      filter.owner = decoded.userId;
+    }
+
+    const meetings = await Meeting.find(filter)
+      .populate('property', 'title location images')
+      .populate('student', 'fullName phone email')
+      .populate('owner', 'fullName phone email')
+      .sort({ createdAt: -1 });
+
     return NextResponse.json({
       success: true,
-      data: filteredRequests
+      data: meetings
     });
 
   } catch (error) {
     console.error('Error fetching meeting requests:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }

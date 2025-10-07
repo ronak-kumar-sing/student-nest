@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import apiClient from '@/lib/api';
 import {
   Calendar,
@@ -14,7 +16,9 @@ import {
   Eye,
   X,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  CreditCard,
+  Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,6 +41,10 @@ export default function StudentBookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'offline'>('online');
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -130,6 +138,63 @@ export default function StudentBookingsPage() {
     return booking.status?.toLowerCase() === 'pending' &&
       booking.paymentStatus !== 'paid' &&
       createdAt < twoDaysAgo;
+  };
+
+  const handlePayNow = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setShowPaymentModal(true);
+  };
+
+  const processPayment = async () => {
+    if (!selectedBooking) return;
+
+    setProcessingPayment(true);
+    try {
+      if (paymentMethod === 'online') {
+        // For online payment, automatically confirm after payment
+        const paymentResponse = await apiClient.request(`/bookings/${selectedBooking.id}/payment`, {
+          method: 'POST',
+          body: JSON.stringify({ paymentMethod: 'online', amount: selectedBooking.totalAmount })
+        });
+
+        if (paymentResponse.success) {
+          // Update booking status to confirmed automatically
+          await apiClient.updateBookingStatus(selectedBooking.id, 'confirmed');
+          toast.success('Payment successful! Booking confirmed automatically');
+        } else {
+          toast.error(paymentResponse.error || 'Payment failed');
+          setProcessingPayment(false);
+          return;
+        }
+      } else {
+        // For offline payment, just update payment method and wait for both confirmations
+        const response = await apiClient.request(`/bookings/${selectedBooking.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ 
+            paymentMethod: 'offline',
+            'financial.paymentMethod': 'offline'
+          })
+        });
+
+        if (response.success) {
+          toast.success('Offline payment selected. Please coordinate with the owner for payment.', {
+            description: 'Both you and the owner need to confirm the booking.'
+          });
+        } else {
+          toast.error(response.error || 'Failed to update payment method');
+          setProcessingPayment(false);
+          return;
+        }
+      }
+
+      await fetchBookings();
+      setShowPaymentModal(false);
+      setSelectedBooking(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to process payment');
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
   if (loading) {
@@ -263,6 +328,17 @@ export default function StudentBookingsPage() {
                     <Eye className="h-4 w-4 mr-1" />
                     View Room
                   </Button>
+                  {booking.status === 'pending' && booking.paymentStatus !== 'paid' && !isBookingExpired(booking) && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handlePayNow(booking)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CreditCard className="h-4 w-4 mr-1" />
+                      Pay Now
+                    </Button>
+                  )}
                   {booking.status === 'pending' && !isBookingExpired(booking) && (
                     <Button
                       size="sm"
@@ -279,6 +355,108 @@ export default function StudentBookingsPage() {
           ))
         )}
       </div>
+
+      {/* Payment Method Modal */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Payment Method</DialogTitle>
+            <DialogDescription>
+              Choose how you'd like to pay for this booking
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedBooking && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Total Amount</p>
+                <p className="text-2xl font-bold">₹{selectedBooking.totalAmount.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Includes: Rent (₹{selectedBooking.monthlyRent.toLocaleString()}) + 
+                  Security Deposit (₹{selectedBooking.securityDeposit.toLocaleString()})
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Payment Method</Label>
+                
+                <div className="grid gap-3">
+                  <button
+                    onClick={() => setPaymentMethod('online')}
+                    className={`flex items-center gap-3 p-4 border-2 rounded-lg transition-all ${
+                      paymentMethod === 'online' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      paymentMethod === 'online' ? 'border-primary' : 'border-gray-300'
+                    }`}>
+                      {paymentMethod === 'online' && (
+                        <div className="w-3 h-3 rounded-full bg-primary"></div>
+                      )}
+                    </div>
+                    <CreditCard className="h-5 w-5" />
+                    <div className="text-left flex-1">
+                      <p className="font-medium">Online Payment</p>
+                      <p className="text-sm text-muted-foreground">Pay securely with UPI, Card, or Net Banking</p>
+                      <p className="text-xs text-green-600 mt-1">✓ Instant confirmation</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setPaymentMethod('offline')}
+                    className={`flex items-center gap-3 p-4 border-2 rounded-lg transition-all ${
+                      paymentMethod === 'offline' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      paymentMethod === 'offline' ? 'border-primary' : 'border-gray-300'
+                    }`}>
+                      {paymentMethod === 'offline' && (
+                        <div className="w-3 h-3 rounded-full bg-primary"></div>
+                      )}
+                    </div>
+                    <Wallet className="h-5 w-5" />
+                    <div className="text-left flex-1">
+                      <p className="font-medium">Offline Payment</p>
+                      <p className="text-sm text-muted-foreground">Pay directly to the owner</p>
+                      <p className="text-xs text-orange-600 mt-1">⚠ Requires confirmation from both sides</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1"
+                  disabled={processingPayment}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={processPayment}
+                  disabled={processingPayment}
+                  className="flex-1"
+                >
+                  {processingPayment ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    paymentMethod === 'online' ? 'Proceed to Pay' : 'Confirm Offline Payment'
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

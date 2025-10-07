@@ -47,23 +47,25 @@ export default function OwnerLoginPage() {
         // Handle different verification states
         if (user.verification?.status === "pending") {
           toast.info("Please complete your verification process.")
-          router.push("/verification")
+          router.replace("/verification")
         } else if (user.verification?.status === "verified" || user.isActive) {
           toast.success(`Welcome back, ${user.fullName || user.email}!`)
           const redirectPath = new URLSearchParams(window.location.search).get('redirect') || '/dashboard'
-          router.push(redirectPath)
+          router.replace(redirectPath)
         } else {
           toast.warning("Your account is under review. Please wait for verification.")
+          setLoading(false)
         }
       } else {
         toast.error(result.error || "Login failed. Please check your credentials.")
+        setLoading(false)
       }
     } catch (error) {
       console.error("Login error:", error)
       toast.error("Network error. Please try again.")
-    } finally {
       setLoading(false)
     }
+    // Don't set loading to false on success redirect
   }
 
   return (

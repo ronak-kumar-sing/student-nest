@@ -29,6 +29,7 @@ interface Booking {
   endDate: string;
   status: string;
   paymentStatus: string;
+  paymentMethod?: string;
   studentPhone: string;
   studentEmail: string;
   duration: number;
@@ -60,6 +61,7 @@ export default function OwnerBookingsPage() {
           endDate: booking.endDate || booking.moveOutDate,
           status: booking.status || 'pending',
           paymentStatus: booking.paymentStatus || 'pending',
+          paymentMethod: booking.paymentMethod || 'pending_selection',
           studentPhone: booking.student?.phone || 'N/A',
           studentEmail: booking.student?.email || 'N/A',
           duration: booking.duration || 1,
@@ -91,6 +93,25 @@ export default function OwnerBookingsPage() {
     } catch (error) {
       console.error('Error updating booking:', error);
       toast.error('Failed to update booking');
+    }
+  };
+
+  const handlePaymentConfirmation = async (bookingId: string) => {
+    try {
+      const response = await apiClient.request(`/bookings/${bookingId}/confirm-payment`, {
+        method: 'PATCH',
+        body: JSON.stringify({ ownerConfirmed: true })
+      });
+
+      if (response.success) {
+        toast.success('Payment confirmed successfully');
+        fetchBookings(); // Refresh the list
+      } else {
+        toast.error(response.error || 'Failed to confirm payment');
+      }
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error('Failed to confirm payment');
     }
   };
 
@@ -248,8 +269,35 @@ export default function OwnerBookingsPage() {
                         <span className="text-muted-foreground">Duration: </span>
                         <span className="font-medium">{booking.duration} months</span>
                       </div>
+                      {booking.paymentMethod && booking.paymentMethod !== 'pending_selection' && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant={booking.paymentMethod === 'online' ? 'default' : 'secondary'}>
+                            {booking.paymentMethod === 'online' ? '💳 Online' : '💰 Offline'}
+                          </Badge>
+                          <Badge variant={booking.paymentStatus === 'paid' ? 'default' : 'secondary'}>
+                            {booking.paymentStatus === 'paid' ? '✓ Paid' : '⏳ ' + booking.paymentStatus}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {/* Show payment confirmation for offline payments */}
+                  {booking.paymentMethod === 'offline' && booking.paymentStatus === 'pending_owner_confirmation' && (
+                    <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p className="text-sm text-orange-800 mb-2">
+                        ⚠️ Student has selected offline payment. Please confirm once you receive the payment.
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => handlePaymentConfirmation(booking.id)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Confirm Payment Received
+                      </Button>
+                    </div>
+                  )}
 
                   {booking.status === 'pending' && (
                     <div className="flex gap-2">
@@ -257,9 +305,10 @@ export default function OwnerBookingsPage() {
                         size="sm"
                         onClick={() => handleStatusUpdate(booking.id, 'confirmed')}
                         className="bg-green-600 hover:bg-green-700"
+                        disabled={booking.paymentMethod === 'offline' && booking.paymentStatus !== 'paid'}
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
-                        Confirm
+                        Confirm Booking
                       </Button>
                       <Button
                         size="sm"

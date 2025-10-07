@@ -42,20 +42,24 @@ export default function StudentLoginPage() {
       const result = await login(values.identifier, values.password, 'student', rememberMe)
 
       if (result.success && result.user) {
+        // Show success message
         toast.success(`Welcome back, ${result.user.fullName || result.user.email}!`)
 
         // Get redirect path from URL parameters or default to dashboard
         const redirectPath = new URLSearchParams(window.location.search).get('redirect') || '/dashboard'
-        router.push(redirectPath)
+
+        // Use replace instead of push for faster redirect (no history entry)
+        router.replace(redirectPath)
       } else {
         toast.error(result.error || "Login failed. Please check your credentials.")
+        setLoading(false)
       }
     } catch (error) {
       console.error("Login error:", error)
       toast.error("Network error. Please try again.")
-    } finally {
       setLoading(false)
     }
+    // Don't set loading to false on success - let the redirect happen
   }
 
   return (

@@ -93,7 +93,14 @@ export async function POST(request: Request) {
       user.refreshTokens = user.refreshTokens.slice(-5);
     }
 
-    await user.save();
+    // Use findOneAndUpdate to avoid version conflicts
+    await User.findByIdAndUpdate(
+      user._id,
+      { 
+        $set: { refreshTokens: user.refreshTokens }
+      },
+      { new: true }
+    );
 
     // Prepare user data for response
     const userData = user.toPublicProfile();

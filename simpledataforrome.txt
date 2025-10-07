@@ -1,0 +1,115 @@
+{
+  "bedroom_images": [
+    {
+      "id": 1,
+      "url": "https://www.pexels.com/photo/black-and-grey-bedspread-on-bed-and-pillow-164595/",
+      "description": "Black and grey bedspread on bed and pillow"
+    },
+    {
+      "id": 2,
+      "url": "https://www.pexels.com/photo/bedroom-2631746/",
+      "description": "Modern bedroom interior"
+    },
+    {
+      "id": 3,
+      "url": "https://www.pexels.com/photo/cozy-tent-with-bed-and-terrace-on-beach-4825701/",
+      "description": "Cozy tent with bed and terrace on beach"
+    },
+    {
+      "id": 4,
+      "url": "https://www.pexels.com/photo/green-bedspread-1879061/",
+      "description": "Green bedspread"
+    },
+    {
+      "id": 5,
+      "url": "https://www.pexels.com/photo/photograph-of-bedroom-interior-1571450/",
+      "description": "Photograph of bedroom interior"
+    },
+    {
+      "id": 6,
+      "url": "https://www.pexels.com/photo/macbook-on-bed-3201763/",
+      "description": "MacBook on bed"
+    },
+    {
+      "id": 7,
+      "url": "https://www.pexels.com/photo/modern-bedroom-design-210265/",
+      "description": "Modern bedroom design"
+    },
+    {
+      "id": 8,
+      "url": "https://www.pexels.com/photo/white-bed-cover-near-wall-279746/",
+      "description": "White bed cover near wall"
+    },
+    {
+      "id": 9,
+      "url": "https://www.pexels.com/photo/brown-wooden-bed-frame-2416933/",
+      "description": "Brown wooden bed frame"
+    },
+    {
+      "id": 10,
+      "url": "https://www.pexels.com/photo/gray-bed-linen-with-brown-pillows-6970025/",
+      "description": "Gray bed linen with brown pillows"
+    },
+    {
+      "id": 11,
+      "url": "https://www.pexels.com/photo/black-laptop-placed-on-table-271618/",
+      "description": "Black laptop placed on table"
+    },
+    {
+      "id": 12,
+      "url": "https://www.pexels.com/photo/blue-blanket-on-top-of-bed-172872/",
+      "description": "Blue blanket on top of bed"
+    },
+    {
+      "id": 13,
+      "url": "https://www.pexels.com/photo/open-room-curtain-276671/",
+      "description": "Open room curtain"
+    },
+    {
+      "id": 14,
+      "url": "https://www.pexels.com/photo/white-wooden-shelf-beside-bed-2062431/",
+      "description": "White wooden shelf beside bed"
+    },
+    {
+      "id": 15,
+      "url": "https://www.pexels.com/photo/bedroom-interior-with-pillows-on-bed-6301172/",
+      "description": "Bedroom interior with pillows on bed"
+    },
+    {
+      "id": 16,
+      "url": "https://www.pexels.com/photo/rolling-chair-in-front-of-desk-beside-bed-271695/",
+      "description": "Rolling chair in front of desk beside bed"
+    },
+    {
+      "id": 17,
+      "url": "https://www.pexels.com/photo/modern-bedroom-in-st-george-vacation-home-33921988/",
+      "description": "Modern bedroom in St George vacation home"
+    },
+    {
+      "id": 18,
+      "url": "https://www.pexels.com/photo/a-wooden-wall-inside-the-bedroom-9056676/",
+      "description": "A wooden wall inside the bedroom"
+    },
+    {
+      "id": 19,
+      "url": "https://www.pexels.com/photo/white-and-black-desk-beside-bed-and-window-439227/",
+      "description": "White and black desk beside bed and window"
+    },
+    {
+      "id": 20,
+      "url": "https://www.pexels.com/photo/upholstered-bed-near-cabinet-262048/",
+      "description": "Upholstered bed near cabinet"
+    },
+    {
+      "id": 21,
+      "url": "https://www.pexels.com/photo/white-throw-pillow-on-bed-271743/",
+      "description": "White throw pillow on bed"
+    }
+  ],
+  "metadata": {
+    "total_images": 21,
+    "source": "Pexels",
+    "category": "Bedroom Interior Design",
+    "created": "2025-01-20"
+  }
+}

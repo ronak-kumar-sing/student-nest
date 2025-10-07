@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     let savedRoomIds: string[] = [];
 
     // For students, use savedProperties field
-    if (user.role === 'student') {
+    if (user.role === 'Student' || user.role === 'student') {
       const student = await Student.findById(userId).select('savedProperties');
       savedRoomIds = (student as any)?.savedProperties || [];
     } else {
@@ -150,29 +150,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sample room IDs (these are demo rooms, we'll allow saving them)
-    const sampleRoomIds = [
-      '1', '2', '3', // String IDs used in sample data
-      '507f1f77bcf86cd799439011',
-      '507f1f77bcf86cd799439012',
-      '507f1f77bcf86cd799439013',
-    ];
-
-    const isSampleRoom = sampleRoomIds.includes(roomId);
-
-    // For sample rooms, just return success without saving to database
-    if (isSampleRoom) {
-      return NextResponse.json({
-        success: true,
-        message: 'Sample room bookmarked successfully',
-        data: {
-          savedRoomsCount: 0, // We don't track sample rooms in database
-          isSaved: true,
-        },
-      });
-    }
-
-    // Check if room exists (for real rooms only)
+    // Validate MongoDB ObjectId format
     if (!mongoose.Types.ObjectId.isValid(roomId)) {
       return NextResponse.json(
         {
@@ -183,6 +161,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if room exists
     const room = await Room.findById(roomId);
     if (!room) {
       return NextResponse.json(
@@ -195,7 +174,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user to determine the role
-    const user = await User.findById(userId).select('role savedProperties');
+    const user = await User.findById(userId).select('role');
     if (!user) {
       return NextResponse.json(
         {
@@ -209,12 +188,12 @@ export async function POST(request: NextRequest) {
     let savedList: string[] = [];
 
     // Add room to appropriate saved list based on user role
-    if (user.role === 'student') {
+    if (user.role === 'Student' || user.role === 'student') {
       // For students, use savedProperties in Student model
       const updatedStudent = await Student.findByIdAndUpdate(
         userId,
-        { $addToSet: { savedProperties: roomId } },
-        { new: true }
+        { $addToSet: { savedProperties: new mongoose.Types.ObjectId(roomId) } },
+        { new: true, upsert: false }
       ).select('savedProperties');
 
       savedList = (updatedStudent as any)?.savedProperties || [];
@@ -222,7 +201,7 @@ export async function POST(request: NextRequest) {
       // For other users, use savedRooms in User model
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { $addToSet: { savedRooms: roomId } },
+        { $addToSet: { savedRooms: new mongoose.Types.ObjectId(roomId) } },
         { new: true }
       ).select('savedRooms');
 
@@ -296,11 +275,11 @@ export async function DELETE(request: NextRequest) {
     let savedList: string[] = [];
 
     // Remove room from appropriate saved list based on user role
-    if (user.role === 'student') {
+    if (user.role === 'Student' || user.role === 'student') {
       // For students, use savedProperties in Student model
       const updatedStudent = await Student.findByIdAndUpdate(
         userId,
-        { $pull: { savedProperties: roomId } },
+        { $pull: { savedProperties: mongoose.Types.ObjectId.isValid(roomId) ? new mongoose.Types.ObjectId(roomId) : roomId } },
         { new: true }
       ).select('savedProperties');
 
@@ -309,7 +288,7 @@ export async function DELETE(request: NextRequest) {
       // For other users, use savedRooms in User model
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { $pull: { savedRooms: roomId } },
+        { $pull: { savedRooms: mongoose.Types.ObjectId.isValid(roomId) ? new mongoose.Types.ObjectId(roomId) : roomId } },
         { new: true }
       ).select('savedRooms');
 

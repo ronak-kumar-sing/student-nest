@@ -62,49 +62,24 @@ export async function POST(request: Request) {
 
     let user = null;
 
-    // Search strategy: Check multiple models to ensure we find the user
+    // Optimized search: Use single query with User model (discriminator handles all types)
     if (role) {
-      // If role is specified, search in appropriate model first
+      // Search with role filter for faster lookup
       const roleVariants = [role, role.charAt(0).toUpperCase() + role.slice(1)];
+      user = await User.findOne({
+        ...query,
+        role: { $in: roleVariants }
+      }).select('+password').lean(false).exec();
 
-      if (roleVariants.includes('student') || roleVariants.includes('Student')) {
-        user = await Student.findOne(query).exec();
-        console.log('Student search result:', user ? 'Found' : 'Not found');
-      } else if (roleVariants.includes('owner') || roleVariants.includes('Owner')) {
-        user = await Owner.findOne(query).exec();
-        console.log('Owner search result:', user ? 'Found' : 'Not found');
-      }
-    }
-
-    // If not found with role-specific search or no role specified, search all models
-    if (!user) {
-      console.log('Fallback: Searching all user models...');
-
-      // Try User model first (unified approach)
-      user = await User.findOne(query);
-      if (user) {
-        console.log('Found in User model:', user.role);
-      }
-
-      // If not in User model, try Student model
-      if (!user) {
-        user = await Student.findOne(query).exec();
-        if (user) {
-          console.log('Found in Student model');
-        }
-      }
-
-      // If not in Student model, try Owner model
-      if (!user) {
-        user = await Owner.findOne(query).exec();
-        if (user) {
-          console.log('Found in Owner model');
-        }
-      }
+      console.log(role + ' search result:', user ? 'Found' : 'Not found');
+    } else {
+      // No role specified - search all users
+      user = await User.findOne(query).select('+password').lean(false).exec();
+      console.log('User search result:', user ? 'Found' : 'Not found');
     }
 
     if (!user) {
-      console.log('User not found in any model');
+      console.log('User not found');
       return NextResponse.json(
         {
           error: 'Invalid credentials',
@@ -191,19 +166,16 @@ export async function POST(request: Request) {
 
     console.log('Password valid, proceeding with login');
 
-    // Reset login attempts on successful login
-    if (user.resetLoginAttempts) {
-      if (user.loginAttempts > 0) {
-        await user.resetLoginAttempts();
-      }
-    } else {
-      // Fallback reset
-      user.loginAttempts = 0;
-      user.lockUntil = undefined;
-    }
+    // Batch all updates together for single save operation
+    const updates: any = {
+      lastLogin: new Date()
+    };
 
-    // Update last login
-    user.lastLogin = new Date();
+    // Reset login attempts on successful login
+    if (user.loginAttempts && user.loginAttempts > 0) {
+      updates.loginAttempts = 0;
+      updates.lockUntil = undefined;
+    }
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens({
@@ -212,23 +184,21 @@ export async function POST(request: Request) {
       role: user.role.toLowerCase() as 'student' | 'owner'
     });
 
-    // Store refresh token (ensure array exists)
-    if (!user.refreshTokens) {
-      user.refreshTokens = [];
-    }
-    user.refreshTokens.push({
-      token: refreshToken,
-      createdAt: new Date()
-    });
+    // Store refresh token (ensure array exists and keep only last 5)
+    const existingTokens = user.refreshTokens || [];
+    updates.refreshTokens = [
+      ...existingTokens.slice(-4), // Keep only last 4 old tokens
+      {
+        token: refreshToken,
+        createdAt: new Date()
+      }
+    ];
 
-    // Keep only the last 5 refresh tokens
-    if (user.refreshTokens.length > 5) {
-      user.refreshTokens = user.refreshTokens.slice(-5);
-    }
-
+    // Apply all updates in single operation
+    Object.assign(user, updates);
     await user.save();
 
-    // Prepare user data for response
+    // Prepare user data for response (lightweight)
     let userData;
     if (user.toPublicProfile) {
       userData = user.toPublicProfile();

@@ -1119,10 +1119,56 @@ class ApiClient {
   }
 
   // Room sharing methods
-  async createRoomSharingRequest(roomId: string, preferences: any) {
+  async createRoomSharingRequest(roomId: string, data: any) {
+    // Calculate required fields with defaults
+    const maxParticipants = data.maxParticipants || 2;
+    const rentPerPerson = data.rentPerPerson || 0;
+    const totalRent = rentPerPerson * maxParticipants;
+    const securityDeposit = data.securityDeposit || totalRent; // Default to 1 month rent
+
+    // Map habits to studyHabits enum - default to 'Balanced' if not specified
+    let studyHabitsValue = 'Balanced'; // Default
+    const habits = data.preferences?.habits || [];
+    if (habits.includes('Studious')) studyHabitsValue = 'Focused';
+    else if (habits.includes('Working Professional')) studyHabitsValue = 'Serious';
+    else if (habits.includes('Freelancer')) studyHabitsValue = 'Flexible';
+
     return this.request('/room-sharing', {
       method: 'POST',
-      body: { roomId, preferences } as any,
+      body: {
+        propertyId: roomId,
+        maxParticipants,
+        requirements: {
+          gender: data.preferences?.gender || 'any',
+          ageRange: data.preferences?.ageRange || { min: 18, max: 65 },
+          preferences: data.preferences?.occupation || [],
+          lifestyle: data.preferences?.lifestyle || [],
+          studyHabits: studyHabitsValue
+        },
+        costSharing: {
+          monthlyRent: totalRent,
+          rentPerPerson: rentPerPerson,
+          securityDeposit: securityDeposit,
+          depositPerPerson: Math.ceil(securityDeposit / maxParticipants),
+          maintenanceCharges: data.maintenanceCharges || 0,
+          maintenancePerPerson: data.maintenanceCharges ? Math.ceil(data.maintenanceCharges / maxParticipants) : 0,
+          utilitiesIncluded: data.utilitiesIncluded || false,
+          utilitiesPerPerson: data.utilitiesPerPerson || 0
+        },
+        description: data.description,
+        roomConfiguration: {
+          totalBeds: maxParticipants,
+          bedsAvailable: maxParticipants - 1, // Initiator takes one bed
+          hasPrivateBathroom: data.roomConfiguration?.hasPrivateBathroom || false,
+          hasSharedKitchen: data.roomConfiguration?.hasSharedKitchen || true,
+          hasStudyArea: data.roomConfiguration?.hasStudyArea || false,
+          hasStorage: data.roomConfiguration?.hasStorage || false
+        },
+        availableFrom: data.availability?.availableFrom || new Date(),
+        duration: data.availability?.duration || '6 months',
+        houseRules: data.houseRules || [],
+        contact: data.contact || {}
+      } as any,
     });
   }
 

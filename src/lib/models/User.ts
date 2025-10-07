@@ -136,6 +136,14 @@ const userSchema = new Schema<IUserDocument>({
   discriminatorKey: 'role'
 });
 
+// Indexes for faster queries
+userSchema.index({ email: 1, role: 1 }); // Compound index for login queries
+userSchema.index({ phone: 1, role: 1 }); // Compound index for phone login
+userSchema.index({ email: 1 }); // Single index for email lookup
+userSchema.index({ phone: 1 }); // Single index for phone lookup
+userSchema.index({ role: 1 }); // Index for role-based queries
+userSchema.index({ isActive: 1 }); // Index for active users
+
 // Pre-save middleware to hash password
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();

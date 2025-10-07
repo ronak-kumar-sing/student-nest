@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,8 @@ import {
   XCircle,
   Loader2,
   UserPlus,
-  RefreshCw
+  RefreshCw,
+  ExternalLink
 } from "lucide-react";
 import apiClient from '@/lib/api';
 import { toast } from 'sonner';
@@ -22,6 +24,11 @@ interface RoomSharingRequest {
   id: string;
   roomTitle: string;
   roomAddress: string;
+  propertyId?: string;
+  property?: {
+    _id: string;
+    id: string;
+  };
   requestedBy: string;
   requestedByEmail: string;
   requestedByPhone: string;
@@ -39,6 +46,7 @@ interface RoomSharingRequest {
 }
 
 export default function SharedRoomsPage() {
+  const router = useRouter();
   const [requests, setRequests] = useState<RoomSharingRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -191,11 +199,32 @@ export default function SharedRoomsPage() {
           </Card>
         ) : (
           requests.map((request) => (
-            <Card key={request.id}>
+            <Card
+              key={request.id}
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => router.push(`/dashboard/room-sharing/${request.id}`)}
+            >
               <CardContent className="pt-6">
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-semibold text-lg">{request.roomTitle}</h3>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-lg">{request.roomTitle}</h3>
+                      {(request.property?._id || request.property?.id || request.propertyId) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const roomId = request.property?._id || request.property?.id || request.propertyId;
+                            router.push(`/dashboard/rooms/${roomId}`);
+                          }}
+                          title="View room details"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                       <MapPin className="h-4 w-4" />
                       <span>{request.roomAddress}</span>
