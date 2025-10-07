@@ -7,15 +7,13 @@ import {
   CreditCard,
   User,
   Building,
-  BarChart3,
-  TrendingUp,
   Users,
   FileText,
+  Handshake,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
   { label: 'Room Browser', href: '/dashboard', icon: Home, roles: ['student'] },
-  { label: 'Owner Dashboard', href: '/owner/dashboard', icon: BarChart3, roles: ['owner'] },
   { label: 'My Bookings', href: '/dashboard/bookings', icon: FileText, roles: ['student'] },
   { label: 'Booking Requests', href: '/owner/bookings', icon: FileText, roles: ['owner'] },
   {
@@ -26,7 +24,8 @@ export const NAV_ITEMS = [
   },
   { label: 'Room Sharing Network', href: '/shared-rooms', icon: Users, roles: ['student'] },
   { label: 'Visit Requests', href: '/owner/visits', icon: CalendarClock, roles: ['owner'] },
-  { label: 'Analytics Dashboard', href: '/owner/analytics', icon: TrendingUp, roles: ['owner'] },
+  { label: 'Negotiations', href: '/dashboard/negotiations', icon: Handshake, roles: ['student'] },
+  { label: 'Negotiations', href: '/owner/negotiations', icon: Handshake, roles: ['owner'] },
   { label: 'Messages', href: '/dashboard/messages', icon: MessagesSquare },
   { label: 'Saved', href: '/dashboard/saved', icon: Bookmark, roles: ['student'] },
   { label: 'Post Property', href: '/owner/post-property', icon: Plus, roles: ['owner'] },

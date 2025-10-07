@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     // Use findOneAndUpdate to avoid version conflicts
     await User.findByIdAndUpdate(
       user._id,
-      { 
+      {
         $set: { refreshTokens: user.refreshTokens }
       },
       { new: true }

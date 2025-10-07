@@ -541,7 +541,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - [x] Authentication system
 - [x] Room listing
 - [x] Booking system
-- [x] Messaging
+- [ ] Messaging
 
 ### Version 1.1 (Planned)
 - [ ] Payment integration

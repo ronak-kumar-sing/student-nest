@@ -151,46 +151,30 @@ export default function StudentBookingsPage() {
     setProcessingPayment(true);
     try {
       if (paymentMethod === 'online') {
-        // For online payment, automatically confirm after payment
-        const paymentResponse = await apiClient.request(`/bookings/${selectedBooking.id}/payment`, {
-          method: 'POST',
-          body: JSON.stringify({ paymentMethod: 'online', amount: selectedBooking.totalAmount })
-        });
-
-        if (paymentResponse.success) {
-          // Update booking status to confirmed automatically
-          await apiClient.updateBookingStatus(selectedBooking.id, 'confirmed');
-          toast.success('Payment successful! Booking confirmed automatically');
-        } else {
-          toast.error(paymentResponse.error || 'Payment failed');
-          setProcessingPayment(false);
-          return;
-        }
+        // Redirect to payment page for online payment
+        router.push(`/dashboard/bookings/${selectedBooking.id}/payment?method=online`);
+        return;
       } else {
-        // For offline payment, just update payment method and wait for both confirmations
-        const response = await apiClient.request(`/bookings/${selectedBooking.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ 
-            paymentMethod: 'offline',
-            'financial.paymentMethod': 'offline'
-          })
+        // For offline payment, use the payment endpoint
+        const response = await apiClient.request(`/bookings/${selectedBooking.id}/payment`, {
+          method: 'POST',
+          body: JSON.stringify({ paymentMethod: 'offline' })
         });
 
         if (response.success) {
-          toast.success('Offline payment selected. Please coordinate with the owner for payment.', {
-            description: 'Both you and the owner need to confirm the booking.'
+          toast.success('Offline payment selected', {
+            description: 'Please pay the owner directly. Owner will confirm payment receipt.',
+            duration: 5000
           });
+          await fetchBookings();
+          setShowPaymentModal(false);
+          setSelectedBooking(null);
         } else {
           toast.error(response.error || 'Failed to update payment method');
-          setProcessingPayment(false);
-          return;
         }
       }
-
-      await fetchBookings();
-      setShowPaymentModal(false);
-      setSelectedBooking(null);
     } catch (error: any) {
+      console.error('Payment processing error:', error);
       toast.error(error.message || 'Failed to process payment');
     } finally {
       setProcessingPayment(false);
@@ -214,11 +198,24 @@ export default function StudentBookingsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="border-b pb-6">
-        <h1 className="text-3xl font-bold">My Bookings</h1>
-        <p className="text-muted-foreground mt-2">
-          View and manage your property bookings
-        </p>
+      <div className="border-b pb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">My Bookings</h1>
+          <p className="text-muted-foreground mt-2">
+            View and manage your property bookings
+          </p>
+        </div>
+        <Button
+          onClick={() => {
+            setLoading(true);
+            fetchBookings();
+          }}
+          variant="outline"
+          className="gap-2"
+        >
+          <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Stats Summary */}
@@ -372,26 +369,24 @@ export default function StudentBookingsPage() {
                 <p className="text-sm text-muted-foreground mb-1">Total Amount</p>
                 <p className="text-2xl font-bold">₹{selectedBooking.totalAmount.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Includes: Rent (₹{selectedBooking.monthlyRent.toLocaleString()}) + 
+                  Includes: Rent (₹{selectedBooking.monthlyRent.toLocaleString()}) +
                   Security Deposit (₹{selectedBooking.securityDeposit.toLocaleString()})
                 </p>
               </div>
 
               <div className="space-y-3">
                 <Label>Payment Method</Label>
-                
+
                 <div className="grid gap-3">
                   <button
                     onClick={() => setPaymentMethod('online')}
-                    className={`flex items-center gap-3 p-4 border-2 rounded-lg transition-all ${
-                      paymentMethod === 'online' 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`flex items-center gap-3 p-4 border-2 rounded-lg transition-all ${paymentMethod === 'online'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      paymentMethod === 'online' ? 'border-primary' : 'border-gray-300'
-                    }`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'online' ? 'border-primary' : 'border-gray-300'
+                      }`}>
                       {paymentMethod === 'online' && (
                         <div className="w-3 h-3 rounded-full bg-primary"></div>
                       )}
@@ -406,15 +401,13 @@ export default function StudentBookingsPage() {
 
                   <button
                     onClick={() => setPaymentMethod('offline')}
-                    className={`flex items-center gap-3 p-4 border-2 rounded-lg transition-all ${
-                      paymentMethod === 'offline' 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`flex items-center gap-3 p-4 border-2 rounded-lg transition-all ${paymentMethod === 'offline'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      paymentMethod === 'offline' ? 'border-primary' : 'border-gray-300'
-                    }`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'offline' ? 'border-primary' : 'border-gray-300'
+                      }`}>
                       {paymentMethod === 'offline' && (
                         <div className="w-3 h-3 rounded-full bg-primary"></div>
                       )}

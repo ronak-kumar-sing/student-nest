@@ -30,6 +30,12 @@ interface Booking {
   status: string;
   paymentStatus: string;
   paymentMethod?: string;
+  paymentDetails?: {
+    paymentMethod?: string;
+    transactionId?: string;
+    paymentDate?: Date;
+    totalPaid?: number;
+  };
   studentPhone: string;
   studentEmail: string;
   duration: number;
@@ -62,6 +68,7 @@ export default function OwnerBookingsPage() {
           status: booking.status || 'pending',
           paymentStatus: booking.paymentStatus || 'pending',
           paymentMethod: booking.paymentMethod || 'pending_selection',
+          paymentDetails: booking.paymentDetails || null,
           studentPhone: booking.student?.phone || 'N/A',
           studentEmail: booking.student?.email || 'N/A',
           duration: booking.duration || 1,
@@ -98,20 +105,21 @@ export default function OwnerBookingsPage() {
 
   const handlePaymentConfirmation = async (bookingId: string) => {
     try {
-      const response = await apiClient.request(`/bookings/${bookingId}/confirm-payment`, {
-        method: 'PATCH',
-        body: JSON.stringify({ ownerConfirmed: true })
+      const response = await apiClient.request(`/bookings/${bookingId}/payment`, {
+        method: 'PATCH'
       });
 
       if (response.success) {
-        toast.success('Payment confirmed successfully');
+        toast.success('Offline payment confirmed successfully', {
+          description: 'Booking status updated to confirmed'
+        });
         fetchBookings(); // Refresh the list
       } else {
         toast.error(response.error || 'Failed to confirm payment');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error confirming payment:', error);
-      toast.error('Failed to confirm payment');
+      toast.error(error.message || 'Failed to confirm payment');
     }
   };
 
@@ -272,7 +280,7 @@ export default function OwnerBookingsPage() {
                       {booking.paymentMethod && booking.paymentMethod !== 'pending_selection' && (
                         <div className="flex items-center gap-2">
                           <Badge variant={booking.paymentMethod === 'online' ? 'default' : 'secondary'}>
-                            {booking.paymentMethod === 'online' ? '💳 Online' : '💰 Offline'}
+                            {booking.paymentDetails?.paymentMethod === 'online' ? '💳 Online' : '💰 Offline'}
                           </Badge>
                           <Badge variant={booking.paymentStatus === 'paid' ? 'default' : 'secondary'}>
                             {booking.paymentStatus === 'paid' ? '✓ Paid' : '⏳ ' + booking.paymentStatus}
@@ -283,10 +291,13 @@ export default function OwnerBookingsPage() {
                   </div>
 
                   {/* Show payment confirmation for offline payments */}
-                  {booking.paymentMethod === 'offline' && booking.paymentStatus === 'pending_owner_confirmation' && (
+                  {booking.paymentDetails?.paymentMethod === 'cash' && booking.paymentStatus === 'pending' && (
                     <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                      <p className="text-sm text-orange-800 mb-2">
-                        ⚠️ Student has selected offline payment. Please confirm once you receive the payment.
+                      <p className="text-sm text-orange-800 mb-2 font-medium">
+                        ⚠️ Offline Payment Selected
+                      </p>
+                      <p className="text-sm text-orange-700 mb-3">
+                        The student has chosen to pay directly. Please confirm once you receive the payment.
                       </p>
                       <Button
                         size="sm"
@@ -305,7 +316,7 @@ export default function OwnerBookingsPage() {
                         size="sm"
                         onClick={() => handleStatusUpdate(booking.id, 'confirmed')}
                         className="bg-green-600 hover:bg-green-700"
-                        disabled={booking.paymentMethod === 'offline' && booking.paymentStatus !== 'paid'}
+                        disabled={booking.paymentDetails?.paymentMethod === 'cash' && booking.paymentStatus !== 'paid'}
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Confirm Booking

@@ -81,7 +81,7 @@ export default function OwnerSignupPage() {
           // Redirect to dashboard
           console.log("Redirecting to dashboard in 500ms...")
           setTimeout(() => {
-            router.push("/dashboard")
+            router.push("/bookings")
           }, 500)
         }
       } else {

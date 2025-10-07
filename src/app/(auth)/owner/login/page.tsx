@@ -30,7 +30,7 @@ export default function OwnerLoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      const redirectPath = new URLSearchParams(window.location.search).get('redirect') || '/dashboard'
+      const redirectPath = new URLSearchParams(window.location.search).get('redirect') || '/bookings'
       router.push(redirectPath)
     }
   }, [isAuthenticated, authLoading, router])
@@ -50,7 +50,7 @@ export default function OwnerLoginPage() {
           router.replace("/verification")
         } else if (user.verification?.status === "verified" || user.isActive) {
           toast.success(`Welcome back, ${user.fullName || user.email}!`)
-          const redirectPath = new URLSearchParams(window.location.search).get('redirect') || '/dashboard'
+          const redirectPath = new URLSearchParams(window.location.search).get('redirect') || '/bookings'
           router.replace(redirectPath)
         } else {
           toast.warning("Your account is under review. Please wait for verification.")

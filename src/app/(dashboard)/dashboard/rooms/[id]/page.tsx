@@ -35,6 +35,10 @@ import {
   ThumbsUp,
   Loader2,
   UserPlus,
+  Eye,
+  Send,
+  Handshake,
+  Percent,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -406,33 +410,50 @@ const ImageGallery = ({ images, title }: { images: string[]; title: string }) =>
 
 // Price Negotiation Modal
 const PriceNegotiationModal = ({ room, isOpen, onClose }: { room: Room | null; isOpen: boolean; onClose: () => void }) => {
-  const [offerPrice, setOfferPrice] = useState(room?.price ? room.price * 0.9 : 0);
+  const [offerPrice, setOfferPrice] = useState(room?.price ? Math.round(room.price * 0.9) : 0);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen || !room) return null;
 
   const handleSubmit = async () => {
+    if (!offerPrice || offerPrice <= 0 || offerPrice >= (room?.price || 0)) {
+      toast.error('Please enter a valid offer price less than the original price');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      console.log('Negotiation submitted:', {
-        roomId: room?.id,
-        offerPrice,
-        message,
-        originalPrice: room?.price
+
+      const response = await apiClient.request('/negotiations', {
+        method: 'POST',
+        body: JSON.stringify({
+          roomId: room?.id,
+          originalPrice: room?.price,
+          proposedPrice: offerPrice,
+          message: message.trim() || undefined
+        })
       });
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      alert('Price negotiation request sent to owner!');
-      onClose();
-    } catch (error) {
+      if (response.success) {
+        toast.success('Price negotiation request sent successfully!');
+        onClose();
+        // Reset form
+        setOfferPrice(room?.price ? Math.round(room.price * 0.9) : 0);
+        setMessage('');
+      } else {
+        toast.error(response.error || 'Failed to send negotiation request');
+      }
+    } catch (error: any) {
       console.error('Negotiation error:', error);
-      alert('Failed to send negotiation request');
+      toast.error(error.message || 'Failed to send negotiation request');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const savingsAmount = (room?.price || 0) - offerPrice;
+  const savingsPercentage = Math.round((savingsAmount / (room?.price || 1)) * 100);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -448,33 +469,60 @@ const PriceNegotiationModal = ({ room, isOpen, onClose }: { room: Room | null; i
         </div>
 
         <div className="space-y-4">
+          {/* Price Summary */}
+          <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-sm text-zinc-400">Original Price:</span>
+              <span className="text-white font-semibold">₹{room?.price.toLocaleString()}/month</span>
+            </div>
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-sm text-zinc-400">Your Offer:</span>
+              <span className="text-blue-400 font-semibold">₹{offerPrice.toLocaleString()}/month</span>
+            </div>
+            {savingsAmount > 0 && (
+              <div className="flex justify-between items-center border-t border-zinc-600 pt-3">
+                <span className="text-sm text-green-400">Potential Savings:</span>
+                <div className="text-right">
+                  <span className="text-green-400 font-semibold">₹{savingsAmount.toLocaleString()}</span>
+                  <span className="text-xs text-green-300 block">({savingsPercentage}% discount)</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-white mb-2">
-              Current Price: ₹{room?.price.toLocaleString()}/month
-            </label>
-            <label className="block text-sm font-medium text-white mb-2">
-              Your Offer
+              Your Offer Price <span className="text-red-400">*</span>
             </label>
             <input
               type="number"
               value={offerPrice}
               onChange={(e) => setOfferPrice(Number(e.target.value))}
-              className="w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white rounded-xl focus:ring-2 focus:ring-blue-500"
+              min="1"
+              max={room?.price ? room.price - 1 : undefined}
+              className="w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white rounded-xl focus:ring-2 focus:ring-green-500"
               placeholder="Enter your offer"
             />
+            <p className="text-xs text-zinc-500 mt-1">
+              Must be less than ₹{room?.price.toLocaleString()}
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-white mb-2">
-              Message (Optional)
+              Message to Owner <span className="text-zinc-500">(Optional)</span>
             </label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white rounded-xl focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-zinc-700 bg-zinc-800 text-white rounded-xl focus:ring-2 focus:ring-green-500"
               rows={3}
-              placeholder="Add a message to your offer..."
+              placeholder="Explain why you're offering this price..."
+              maxLength={500}
             />
+            <p className="text-xs text-zinc-500 mt-1">
+              {message.length}/500 characters
+            </p>
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -487,16 +535,19 @@ const PriceNegotiationModal = ({ room, isOpen, onClose }: { room: Room | null; i
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              disabled={isSubmitting || !offerPrice || offerPrice >= (room?.price || 0)}
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
+                  Sending Offer...
                 </>
               ) : (
-                'Send Offer'
+                <>
+                  <Handshake className="w-4 h-4 mr-2" />
+                  Send Negotiation Request
+                </>
               )}
             </Button>
           </div>
@@ -579,8 +630,8 @@ const ScheduleVisitModal = ({ room, isOpen, onClose }: { room: Room | null; isOp
                 type="button"
                 onClick={() => setMeetingType('physical')}
                 className={`px-4 py-3 rounded-xl border-2 transition-all ${meetingType === 'physical'
-                    ? 'border-blue-500 bg-blue-500/20 text-blue-400'
-                    : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                  : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600'
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
@@ -592,8 +643,8 @@ const ScheduleVisitModal = ({ room, isOpen, onClose }: { room: Room | null; isOp
                 type="button"
                 onClick={() => setMeetingType('virtual')}
                 className={`px-4 py-3 rounded-xl border-2 transition-all ${meetingType === 'virtual'
-                    ? 'border-blue-500 bg-blue-500/20 text-blue-400'
-                    : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                  : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600'
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
@@ -709,6 +760,9 @@ export default function RoomDetailsPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [hasExistingBooking, setHasExistingBooking] = useState(false);
   const [showScheduleVisitModal, setShowScheduleVisitModal] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [roomSharingStatus, setRoomSharingStatus] = useState<any>(null);
+  const [roomSharingLoading, setRoomSharingLoading] = useState(false);
 
   const handleBookNow = async () => {
     if (!currentUser) {
@@ -878,7 +932,11 @@ export default function RoomDetailsPage() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      setCurrentUser(JSON.parse(userData));
+      const user = JSON.parse(userData);
+      setCurrentUser(user);
+      // Check if user is owner
+      const userRole = user.role || user.userType;
+      setIsOwner(userRole === 'owner' || userRole === 'Owner');
     }
   }, []);
 
@@ -924,6 +982,30 @@ export default function RoomDetailsPage() {
 
     checkRoomStatus();
   }, [currentUser, room?.id]);
+
+  // Fetch room sharing status
+  useEffect(() => {
+    const fetchRoomSharingStatus = async () => {
+      if (room?.id) {
+        try {
+          setRoomSharingLoading(true);
+          const response = await apiClient.request(`/room-sharing?propertyId=${room.id}&status=active`);
+          if (response.success && response.data?.roomShares?.length > 0) {
+            setRoomSharingStatus(response.data.roomShares[0]);
+          } else {
+            setRoomSharingStatus(null);
+          }
+        } catch (error) {
+          console.error('Error fetching room sharing status:', error);
+          setRoomSharingStatus(null);
+        } finally {
+          setRoomSharingLoading(false);
+        }
+      }
+    };
+
+    fetchRoomSharingStatus();
+  }, [room?.id]);
 
   if (isLoading) return <RoomDetailsSkeleton />;
 
@@ -992,6 +1074,12 @@ export default function RoomDetailsPage() {
                       You Have Booked This
                     </Badge>
                   )}
+                  {roomSharingStatus && (
+                    <Badge variant="secondary" className="bg-purple-900/50 text-purple-400 border-purple-700">
+                      <UserPlus className="w-3 h-3 mr-1" />
+                      Room Sharing Available
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -1053,6 +1141,68 @@ export default function RoomDetailsPage() {
                 </div>
               </div>
             </motion.div>
+
+            {/* Room Sharing Section */}
+            {roomSharingStatus && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="space-y-4"
+              >
+                <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-xl border border-purple-700/50 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-600 rounded-lg">
+                        <UserPlus className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-white">Room Sharing Available</h3>
+                        <p className="text-purple-300 text-sm">Share this room with other students</p>
+                      </div>
+                    </div>
+                    <Link href={`/dashboard/room-sharing/${roomSharingStatus._id}`}>
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+                        View Details
+                      </Button>
+                    </Link>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-purple-800/30 rounded-lg border border-purple-600/30">
+                      <div className="text-lg font-bold text-purple-300">{roomSharingStatus.bedsAvailable}</div>
+                      <div className="text-xs text-purple-400">Beds Available</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-800/30 rounded-lg border border-purple-600/30">
+                      <div className="text-lg font-bold text-purple-300">{roomSharingStatus.totalBeds}</div>
+                      <div className="text-xs text-purple-400">Total Beds</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-800/30 rounded-lg border border-purple-600/30">
+                      <div className="text-lg font-bold text-purple-300">₹{roomSharingStatus.monthlyRent?.toLocaleString()}</div>
+                      <div className="text-xs text-purple-400">Per Month</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-800/30 rounded-lg border border-purple-600/30">
+                      <div className="text-lg font-bold text-purple-300">₹{roomSharingStatus.securityDeposit?.toLocaleString()}</div>
+                      <div className="text-xs text-purple-400">Security Deposit</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-purple-300">
+                      <span className="font-medium">Posted by:</span> {roomSharingStatus.initiator?.fullName || 'Anonymous'}
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href={`/dashboard/room-sharing/${roomSharingStatus._id}`}>
+                        <Button size="sm" variant="outline" className="border-purple-600 text-purple-400 hover:bg-purple-900/50">
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Sharing Details
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* Amenities */}
             <motion.div
@@ -1341,7 +1491,23 @@ export default function RoomDetailsPage() {
                 </div>
 
                 <div className="space-y-3 mb-6">
-                  {hasExistingBooking ? (
+                  {isOwner ? (
+                    // Owner view - show management buttons
+                    <>
+                      <Button
+                        onClick={() => router.push(`/owner/rooms/${id}/edit`)}
+                        className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-4 rounded-xl font-semibold"
+                      >
+                        Edit Property
+                      </Button>
+                      <Button
+                        onClick={() => router.push(`/owner/bookings?roomId=${id}`)}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 rounded-xl font-semibold"
+                      >
+                        View Bookings
+                      </Button>
+                    </>
+                  ) : hasExistingBooking ? (
                     <Button
                       onClick={() => router.push('/dashboard/bookings')}
                       className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-4 rounded-xl font-semibold"
@@ -1365,13 +1531,15 @@ export default function RoomDetailsPage() {
                     </Button>
                   )}
 
-                  <Button
-                    onClick={() => setShowNegotiationModal(true)}
-                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-4 rounded-xl font-semibold"
-                  >
-                    <DollarSign className="w-4 h-4 mr-2" />
-                    Negotiate Price
-                  </Button>
+                  {!isOwner && !hasExistingBooking && (
+                    <Button
+                      onClick={() => setShowNegotiationModal(true)}
+                      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-4 rounded-xl font-semibold"
+                    >
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      Negotiate Price
+                    </Button>
+                  )}
 
                   <Button
                     variant="outline"
