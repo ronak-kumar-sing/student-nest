@@ -2,10 +2,10 @@
 
 /**
  * Database Cleanup Script
- * 
+ *
  * This script removes all data from the MongoDB database.
  * USE WITH CAUTION - This will delete ALL data!
- * 
+ *
  * Usage:
  *   node scripts/cleanup-database.js
  */
@@ -35,7 +35,7 @@ async function cleanupDatabase() {
     console.log('✅ Connected to MongoDB\n');
 
     const db = mongoose.connection.db;
-    
+
     // Get all collections
     const collections = await db.listCollections().toArray();
     console.log(`📊 Found ${collections.length} collections\n`);
@@ -55,14 +55,14 @@ async function cleanupDatabase() {
 
     // In a real scenario, you might want to add a confirmation prompt here
     // For now, we'll proceed with deletion
-    
+
     console.log('🗑️  Starting cleanup...\n');
 
     let totalDeleted = 0;
-    
+
     for (const collection of collections) {
       const collectionName = collection.name;
-      
+
       try {
         const result = await db.collection(collectionName).deleteMany({});
         console.log(`✅ ${collectionName}: Deleted ${result.deletedCount} documents`);
@@ -76,7 +76,7 @@ async function cleanupDatabase() {
 
     await mongoose.connection.close();
     console.log('🔌 Database connection closed');
-    
+
   } catch (error) {
     console.error('❌ Error during cleanup:', error);
     process.exit(1);

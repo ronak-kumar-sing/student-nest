@@ -401,8 +401,8 @@ export default function StudentNegotiationsPage() {
                               <div className="flex items-center justify-between text-sm">
                                 <span className="text-gray-600">Location:</span>
                                 <span className="font-medium text-gray-900">
-                                  {typeof negotiation.room.location === 'string' 
-                                    ? negotiation.room.location 
+                                  {typeof negotiation.room.location === 'string'
+                                    ? negotiation.room.location
                                     : `${negotiation.room.location?.address || ''}, ${negotiation.room.location?.city || ''}`
                                   }
                                 </span>

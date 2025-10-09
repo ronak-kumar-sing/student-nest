@@ -2,9 +2,9 @@
 
 /**
  * Safe Database Cleanup Script with Confirmation
- * 
+ *
  * This script removes all data from the MongoDB database after user confirmation.
- * 
+ *
  * Usage:
  *   node scripts/cleanup-database-safe.mjs
  */
@@ -49,7 +49,7 @@ async function cleanupDatabase() {
     console.log('✅ Connected to MongoDB\n');
 
     const db = mongoose.connection.db;
-    
+
     // Get all collections
     const collections = await db.listCollections().toArray();
     console.log(`📊 Found ${collections.length} collections\n`);
@@ -73,7 +73,7 @@ async function cleanupDatabase() {
 
     // Ask for confirmation
     const answer = await askQuestion('Are you sure you want to delete ALL data? Type "DELETE ALL" to confirm: ');
-    
+
     if (answer.trim() !== 'DELETE ALL') {
       console.log('\n❌ Cleanup cancelled. No data was deleted.');
       await mongoose.connection.close();
@@ -84,10 +84,10 @@ async function cleanupDatabase() {
     console.log('\n🗑️  Starting cleanup...\n');
 
     let totalDeleted = 0;
-    
+
     for (const collection of collections) {
       const collectionName = collection.name;
-      
+
       try {
         const result = await db.collection(collectionName).deleteMany({});
         console.log(`✅ ${collectionName.padEnd(30)} Deleted ${result.deletedCount} documents`);
@@ -104,7 +104,7 @@ async function cleanupDatabase() {
     await mongoose.connection.close();
     console.log('🔌 Database connection closed');
     rl.close();
-    
+
   } catch (error) {
     console.error('❌ Error during cleanup:', error);
     rl.close();

@@ -136,12 +136,9 @@ const userSchema = new Schema<IUserDocument>({
   discriminatorKey: 'role'
 });
 
-// Indexes for faster queries
+// Indexes for faster queries (email, phone have unique:true which creates indexes automatically)
 userSchema.index({ email: 1, role: 1 }); // Compound index for login queries
 userSchema.index({ phone: 1, role: 1 }); // Compound index for phone login
-userSchema.index({ email: 1 }); // Single index for email lookup
-userSchema.index({ phone: 1 }); // Single index for phone lookup
-userSchema.index({ role: 1 }); // Index for role-based queries
 userSchema.index({ isActive: 1 }); // Index for active users
 
 // Pre-save middleware to hash password
@@ -203,8 +200,7 @@ userSchema.methods.toPublicProfile = function() {
   return userObject;
 };
 
-// Index for better performance
-userSchema.index({ role: 1 });
+// Role index already covered by compound indexes above
 
 const User: Model<IUserDocument> = mongoose.models.User || mongoose.model<IUserDocument>('User', userSchema);
 

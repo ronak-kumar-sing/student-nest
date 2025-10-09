@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ProfileNavigation from '@/components/profile/ProfileNavigation';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileEditForm from '@/components/forms/ProfileEditForm';
-import { getOwnerProfile, updateOwnerProfile } from '@/lib/api';
+import { getOwnerProfile, updateOwnerProfile, uploadAvatar } from '@/lib/api';
 import {
   Building,
   MapPin,
@@ -23,6 +23,7 @@ import {
   Edit,
   Eye
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 function OwnerProfilePage() {
   const [profile, setProfile] = useState<any>(null);
@@ -53,12 +54,40 @@ function OwnerProfilePage() {
       if (response.success) {
         setProfile({ ...(profile || {}), ...data });
         setIsEditing(false);
-        alert('Profile updated successfully!');
+        toast.success('Profile updated successfully!');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile. Please try again.');
+      toast.error('Failed to update profile. Please try again.');
     }
+  };
+
+  const handleAvatarUpload = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/jpeg,image/png,image/jpg,image/webp';
+    input.onchange = async (e: any) => {
+      const file = e.target?.files?.[0];
+      if (file) {
+        try {
+          const formData = new FormData();
+          formData.append('profilePhoto', file);
+
+          const response = await uploadAvatar(formData);
+          if (response.success) {
+            setProfile((prev: any) => ({ ...prev, profilePhoto: response.data.photoUrl, avatar: response.data.photoUrl }));
+            toast.success('Profile photo updated successfully!');
+            fetchProfile(); // Refresh profile data
+          } else {
+            toast.error(response.error || 'Failed to upload profile photo');
+          }
+        } catch (error) {
+          console.error('Error uploading profile photo:', error);
+          toast.error('Failed to upload profile photo. Please try again.');
+        }
+      }
+    };
+    input.click();
   };
 
   if (loading) {
@@ -115,7 +144,7 @@ function OwnerProfilePage() {
               user={profile}
               userType="owner"
               onEditClick={() => setIsEditing(true)}
-              onUploadAvatar={() => console.log('Upload avatar')}
+              onUploadAvatar={handleAvatarUpload}
             />
 
             {/* Business Statistics */}

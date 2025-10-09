@@ -360,7 +360,7 @@ export default function OwnerNegotiationsPage() {
                             <div className="flex items-center gap-3 mb-4">
                               <div className="flex items-center gap-2 flex-1">
                                 <Home className="h-5 w-5 text-gray-500" />
-                                <Link 
+                                <Link
                                   href={`/dashboard/rooms/${negotiation.room._id}`}
                                   className="font-semibold text-lg text-blue-600 hover:text-blue-800 hover:underline transition-colors"
                                 >
@@ -381,8 +381,8 @@ export default function OwnerNegotiationsPage() {
                               <div className="flex items-center justify-between text-sm">
                                 <span className="text-gray-600">Location:</span>
                                 <span className="font-medium text-gray-900">
-                                  {typeof negotiation.room.location === 'string' 
-                                    ? negotiation.room.location 
+                                  {typeof negotiation.room.location === 'string'
+                                    ? negotiation.room.location
                                     : `${negotiation.room.location?.address || ''}, ${negotiation.room.location?.city || ''}`
                                   }
                                 </span>

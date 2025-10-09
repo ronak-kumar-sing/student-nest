@@ -2,10 +2,10 @@
 
 /**
  * Quick Database Cleanup Script (No Confirmation)
- * 
+ *
  * This script removes all data from the MongoDB database without confirmation.
  * USE ONLY IN DEVELOPMENT!
- * 
+ *
  * Usage:
  *   node scripts/quick-cleanup.mjs
  */
@@ -46,7 +46,7 @@ async function quickCleanup() {
     console.log(`🗑️  Cleaning ${collections.length} collections...\n`);
 
     let totalDeleted = 0;
-    
+
     for (const collection of collections) {
       const collectionName = collection.name;
       const result = await db.collection(collectionName).deleteMany({});
@@ -57,7 +57,7 @@ async function quickCleanup() {
     console.log(`\n✨ Done! Deleted ${totalDeleted} documents total\n`);
 
     await mongoose.connection.close();
-    
+
   } catch (error) {
     console.error('❌ Error:', error.message);
     process.exit(1);

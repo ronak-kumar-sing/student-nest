@@ -180,7 +180,7 @@ mongoexport --uri="your-mongodb-uri" --collection=users --out=users-backup.json
 **Solution:** Make sure `.env.local` exists and contains `MONGODB_URI`
 
 ### Error: Connection timeout
-**Solution:** 
+**Solution:**
 - Check if MongoDB is running
 - Verify the connection string is correct
 - Check network/firewall settings
@@ -276,5 +276,5 @@ If you encounter issues:
 
 ---
 
-**Last Updated:** October 5, 2025  
+**Last Updated:** October 5, 2025
 **Scripts Version:** 1.0.0

@@ -281,6 +281,7 @@ export default function OwnerSignupPage() {
                 id="password"
                 {...register("password")}
                 className={errors.password ? "border-red-500" : ""}
+                showStrength={true}
               />
               {errors.password && (
                 <p className="text-sm text-red-600">{errors.password.message as string}</p>
