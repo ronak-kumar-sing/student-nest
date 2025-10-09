@@ -282,7 +282,7 @@ export default function OwnerVerificationPage() {
                   </li>
                 </ul>
               </div>
-              <Button className="bg-orange-600 hover:bg-orange-700" onClick={() => window.location.href = '/owner/dashboard'}>
+              <Button className="bg-orange-600 hover:bg-orange-700" onClick={() => window.location.href = '/owner/bookings'}>
                 Go to Dashboard
               </Button>
             </CardContent>

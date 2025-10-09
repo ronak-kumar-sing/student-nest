@@ -23,7 +23,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Redirect owners to their dashboard
     if (user && (user.role === 'owner' || user.role === 'Owner')) {
-      router.push('/owner/dashboard')
+      router.push('/owner/bookings')
     }
   }, [user, router])
 
