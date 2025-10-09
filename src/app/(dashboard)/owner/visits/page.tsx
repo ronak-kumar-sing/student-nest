@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Calendar,
   Clock,
@@ -15,7 +17,8 @@ import {
   Mail,
   User,
   Loader2,
-  MapPin
+  MapPin,
+  CalendarClock
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { toast } from 'sonner';
@@ -31,11 +34,23 @@ interface Visit {
   studentEmail: string;
   requestDate: string;
   notes?: string;
+  meetingType?: string;
 }
 
 export default function OwnerVisitsPage() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rescheduleDialog, setRescheduleDialog] = useState<{
+    isOpen: boolean;
+    visitId: string;
+    date: string;
+    time: string;
+  }>({
+    isOpen: false,
+    visitId: '',
+    date: '',
+    time: '',
+  });
 
   useEffect(() => {
     fetchVisits();
@@ -51,13 +66,14 @@ export default function OwnerVisitsPage() {
           id: meeting._id || meeting.id,
           studentName: meeting.student?.fullName || meeting.student?.name || 'Student',
           propertyTitle: meeting.property?.title || meeting.room?.title || 'Property',
-          scheduledDate: meeting.scheduledDate || meeting.date,
-          scheduledTime: meeting.scheduledTime || meeting.timeSlot || 'TBD',
+          scheduledDate: meeting.confirmedDate || meeting.preferredDates?.[0] || meeting.createdAt,
+          scheduledTime: meeting.confirmedTime || meeting.timeSlot || 'TBD',
           status: meeting.status || 'pending',
           studentPhone: meeting.student?.phone || 'N/A',
           studentEmail: meeting.student?.email || 'N/A',
           requestDate: meeting.createdAt,
-          notes: meeting.notes || meeting.message,
+          notes: meeting.studentNotes || meeting.notes || meeting.message,
+          meetingType: meeting.meetingType || 'physical',
         }));
         setVisits(visitsData);
       } else {
@@ -85,6 +101,40 @@ export default function OwnerVisitsPage() {
       console.error('Error updating visit:', error);
       toast.error('Failed to update visit');
     }
+  };
+
+  const handleReschedule = async () => {
+    if (!rescheduleDialog.date || !rescheduleDialog.time) {
+      toast.error('Please select both date and time');
+      return;
+    }
+
+    try {
+      const response = await apiClient.rescheduleMeeting(rescheduleDialog.visitId, {
+        confirmedDate: rescheduleDialog.date,
+        confirmedTime: rescheduleDialog.time,
+      });
+
+      if (response.success) {
+        toast.success('Visit rescheduled successfully');
+        setRescheduleDialog({ isOpen: false, visitId: '', date: '', time: '' });
+        fetchVisits();
+      } else {
+        toast.error(response.error || 'Failed to reschedule visit');
+      }
+    } catch (error) {
+      console.error('Error rescheduling visit:', error);
+      toast.error('Failed to reschedule visit');
+    }
+  };
+
+  const openRescheduleDialog = (visitId: string, currentDate: string, currentTime: string) => {
+    setRescheduleDialog({
+      isOpen: true,
+      visitId,
+      date: new Date(currentDate).toISOString().split('T')[0],
+      time: currentTime || '',
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -253,6 +303,14 @@ export default function OwnerVisitsPage() {
                     </Button>
                     <Button
                       size="sm"
+                      variant="outline"
+                      onClick={() => openRescheduleDialog(visit.id, visit.scheduledDate, visit.scheduledTime)}
+                    >
+                      <CalendarClock className="h-4 w-4 mr-1" />
+                      Reschedule
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="destructive"
                       onClick={() => handleVisitAction(visit.id, 'cancelled')}
                     >
@@ -263,20 +321,73 @@ export default function OwnerVisitsPage() {
                 )}
 
                 {visit.status === 'confirmed' && (
-                  <Button
-                    size="sm"
-                    onClick={() => handleVisitAction(visit.id, 'completed')}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    Mark as Completed
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleVisitAction(visit.id, 'completed')}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Mark as Completed
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openRescheduleDialog(visit.id, visit.scheduledDate, visit.scheduledTime)}
+                    >
+                      <CalendarClock className="h-4 w-4 mr-1" />
+                      Reschedule
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
           ))
         )}
       </div>
+
+      {/* Reschedule Dialog */}
+      {rescheduleDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-semibold mb-4">Reschedule Visit</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="reschedule-date">New Date</Label>
+                  <Input
+                    id="reschedule-date"
+                    type="date"
+                    value={rescheduleDialog.date}
+                    onChange={(e) => setRescheduleDialog({ ...rescheduleDialog, date: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="reschedule-time">New Time</Label>
+                  <Input
+                    id="reschedule-time"
+                    type="time"
+                    value={rescheduleDialog.time}
+                    onChange={(e) => setRescheduleDialog({ ...rescheduleDialog, time: e.target.value })}
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setRescheduleDialog({ isOpen: false, visitId: '', date: '', time: '' })}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleReschedule}>
+                    Confirm Reschedule
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

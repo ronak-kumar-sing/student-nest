@@ -31,12 +31,8 @@ export const studentPreferencesSchema = z.object({
 
 // Owner profile schemas
 export const ownerProfileSchema = baseProfileSchema.extend({
-  businessName: z.string().min(2, "Business name is required"),
-  businessType: z.enum(['individual', 'company', 'trust']),
-  experience: z.number().min(0, "Experience must be positive").max(50, "Experience seems too high"),
-  businessAddress: z.string().min(10, "Business address is required"),
-  businessPhone: z.string()
-    .min(1, "Business phone number is required")
+  phone: z.string()
+    .min(1, "Phone number is required")
     .transform((phone) => {
       // Auto-add +91 for Indian numbers if not present
       let cleaned = phone.trim();
@@ -57,10 +53,10 @@ export const ownerProfileSchema = baseProfileSchema.extend({
       return cleaned;
     })
     .refine((phone) => /^\+91\d{10}$/.test(phone), {
-      message: "Please provide a valid 10-digit Indian business phone number"
+      message: "Please provide a valid 10-digit Indian phone number"
     }),
-  businessEmail: z.string().email("Enter a valid business email"),
-  gstNumber: z.string().regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, "Enter a valid GST number").optional(),
+  email: z.string().email("Enter a valid email").optional(),
+  address: z.string().min(10, "Address is required").optional(),
 });
 
 // Verification schemas

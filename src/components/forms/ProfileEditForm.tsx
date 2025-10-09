@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -12,7 +13,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { studentProfileSchema, ownerProfileSchema } from '@/lib/validation/profileSchemas';
 import { Save, Loader2, User, GraduationCap, Briefcase } from 'lucide-react';
 
-const ProfileEditForm = ({
+type ProfileData = z.infer<typeof studentProfileSchema> | z.infer<typeof ownerProfileSchema>;
+
+interface ProfileEditFormProps {
+  profile: any;
+  userType?: "student" | "owner";
+  onUpdate: (data: ProfileData) => Promise<void>;
+  isLoading?: boolean;
+}
+
+const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   profile,
   userType = "student",
   onUpdate,
@@ -28,24 +38,19 @@ const ProfileEditForm = ({
       bio: profile?.bio || '',
       dateOfBirth: profile?.dateOfBirth || '',
       gender: profile?.gender || '',
+      address: profile?.address || '',
+      phone: profile?.phone || '',
+      email: profile?.email || '',
       ...(userType === "student" ? {
         collegeId: profile?.collegeId || '',
         collegeName: profile?.collegeName || '',
         yearOfStudy: profile?.yearOfStudy || '',
         course: profile?.course || ''
-      } : {
-        businessName: profile?.businessName || '',
-        businessType: profile?.businessType || '',
-        experience: profile?.experience || 0,
-        businessAddress: profile?.businessAddress || '',
-        businessPhone: profile?.businessPhone || '',
-        businessEmail: profile?.businessEmail || '',
-        gstNumber: profile?.gstNumber || ''
-      })
+      } : {})
     }
   });
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: ProfileData) => {
     try {
       await onUpdate(data);
     } catch (error) {
@@ -138,98 +143,22 @@ const ProfileEditForm = ({
 
   const renderOwnerFields = () => (
     <>
+      {/* Owner has only personal information - no business fields */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Briefcase size={20} className="text-green-600" />
-            Business Information
+            <User size={20} className="text-green-600" />
+            Contact Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="businessName"
+              name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Business Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter your business name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="businessType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="individual">Individual</SelectItem>
-                      <SelectItem value="company">Company</SelectItem>
-                      <SelectItem value="trust">Trust</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="experience"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Years of Experience</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter years of experience"
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="businessAddress"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Business Address</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter complete business address"
-                    className="resize-none"
-                    rows={3}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="businessPhone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Phone</FormLabel>
+                  <FormLabel>Phone Number</FormLabel>
                   <FormControl>
                     <Input placeholder="+91-9876543210" {...field} />
                   </FormControl>
@@ -240,12 +169,12 @@ const ProfileEditForm = ({
 
             <FormField
               control={form.control}
-              name="businessEmail"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Business Email</FormLabel>
+                  <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="business@example.com" {...field} />
+                    <Input type="email" placeholder="email@example.com" {...field} disabled />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -255,12 +184,17 @@ const ProfileEditForm = ({
 
           <FormField
             control={form.control}
-            name="gstNumber"
+            name="address"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>GST Number (Optional)</FormLabel>
+                <FormLabel>Address</FormLabel>
                 <FormControl>
-                  <Input placeholder="07AABCU9603R1ZV" {...field} />
+                  <Textarea
+                    placeholder="Enter your complete address"
+                    className="resize-none"
+                    rows={3}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

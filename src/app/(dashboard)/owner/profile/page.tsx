@@ -214,12 +214,12 @@ function OwnerProfilePage() {
               </Card>
             </div>
 
-            {/* Contact Information */}
+            {/* Personal Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Phone size={20} className="text-green-600" />
-                  Contact Information
+                  Personal Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -229,24 +229,40 @@ function OwnerProfilePage() {
                       <Mail size={16} className="text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Email</p>
-                        <p className="text-gray-900 dark:text-white">{profile.email}</p>
+                        <p className="text-gray-900 dark:text-white">{profile.email || 'Not provided'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Phone size={16} className="text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Phone</p>
-                        <p className="text-gray-900 dark:text-white">{profile.phone}</p>
+                        <p className="text-gray-900 dark:text-white">{profile.phone || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <MapPin size={16} className="text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Address</p>
+                        <p className="text-gray-900 dark:text-white">{profile.address || 'Not provided'}</p>
                       </div>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <MapPin size={16} className="text-gray-400" />
+                      <Calendar size={16} className="text-gray-400" />
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Location</p>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Date of Birth</p>
                         <p className="text-gray-900 dark:text-white">
-                          {profile.city}, {profile.state}
+                          {profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'Not provided'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Users size={16} className="text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Gender</p>
+                        <p className="text-gray-900 dark:text-white">
+                          {profile.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'Not provided'}
                         </p>
                       </div>
                     </div>
@@ -255,78 +271,24 @@ function OwnerProfilePage() {
                       <div>
                         <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Member Since</p>
                         <p className="text-gray-900 dark:text-white">
-                          {new Date(profile.createdAt).toLocaleDateString()}
+                          {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Not available'}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
+                {profile.bio && (
+                  <div className="mt-6">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                      Bio
+                    </p>
+                    <p className="text-gray-900 dark:text-white leading-relaxed">
+                      {profile.bio}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
-
-            {/* Business Information */}
-            {profile.businessName && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building size={20} className="text-blue-600" />
-                    Business Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                        Business Name
-                      </p>
-                      <p className="text-gray-900 dark:text-white font-semibold">
-                        {profile.businessName}
-                      </p>
-                    </div>
-                    {profile.businessType && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                          Business Type
-                        </p>
-                        <p className="text-gray-900 dark:text-white">
-                          {profile.businessType}
-                        </p>
-                      </div>
-                    )}
-                    {profile.gstNumber && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                          GST Number
-                        </p>
-                        <p className="text-gray-900 dark:text-white font-mono">
-                          {profile.gstNumber}
-                        </p>
-                      </div>
-                    )}
-                    {profile.experience && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                          Experience
-                        </p>
-                        <p className="text-gray-900 dark:text-white">
-                          {profile.experience} years in property management
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  {profile.businessDescription && (
-                    <div className="mt-6">
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                        Business Description
-                      </p>
-                      <p className="text-gray-900 dark:text-white leading-relaxed">
-                        {profile.businessDescription}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
             {/* Profile Completion */}
             <Card className="border-green-200 bg-green-50 dark:bg-green-900/10">

@@ -6,18 +6,18 @@ import { z } from 'zod';
 
 // Validation schema for owner profile updates
 const ownerProfileSchema = z.object({
+  firstName: z.string().min(1).max(50).optional(),
+  lastName: z.string().min(1).max(50).optional(),
   fullName: z.string().min(2).max(100).optional(),
   phone: z.string().regex(/^\+?\d{10,15}$/).optional(),
+  email: z.string().email().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  address: z.string().max(500).optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   bio: z.string().max(500).optional(),
   profilePhoto: z.string().url().optional(),
-  businessName: z.string().optional(),
-  businessType: z.enum(['individual', 'company', 'partnership']).optional(),
-  businessDescription: z.string().max(1000).optional(),
-  gstNumber: z.string().regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/).optional(),
-  experience: z.number().min(0).optional(),
-  licenseNumber: z.string().optional()
 });
 
 // Helper function to verify JWT token and get user
@@ -64,38 +64,36 @@ export async function GET(request: NextRequest) {
   try {
     const { user, error } = await getAuthenticatedUser(request);
 
-    if (error) {
+    if (error || !user) {
       return NextResponse.json({
         success: false,
-        error
+        error: error || 'User not found'
       }, { status: 401 });
     }
 
     // Extract profile data safely
     const profileData = {
       _id: user._id,
+      firstName: (user as any).firstName || user.fullName?.split(' ')[0] || '',
+      lastName: (user as any).lastName || user.fullName?.split(' ').slice(1).join(' ') || '',
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
       role: user.role,
-      city: user.city,
-      state: user.state,
-      bio: user.bio,
+      dateOfBirth: (user as any).dateOfBirth,
+      gender: (user as any).gender,
+      address: (user as any).address,
+      city: (user as any).city,
+      state: (user as any).state,
+      bio: (user as any).bio,
       profilePhoto: user.profilePhoto,
       isActive: user.isActive,
       isEmailVerified: user.isEmailVerified,
       isPhoneVerified: user.isPhoneVerified,
       isIdentityVerified: user.isIdentityVerified,
-      // Business information
-      businessName: user.businessName,
-      businessType: user.businessType,
-      businessDescription: user.businessDescription,
-      gstNumber: user.gstNumber,
-      experience: user.experience,
-      licenseNumber: user.licenseNumber,
       // Member info
-      memberSince: user.createdAt,
-      lastActive: user.lastActive
+      memberSince: (user as any).createdAt,
+      lastActive: (user as any).lastActive
     };
 
     return NextResponse.json({
@@ -117,10 +115,10 @@ export async function PUT(request: NextRequest) {
   try {
     const { user, error } = await getAuthenticatedUser(request);
 
-    if (error) {
+    if (error || !user) {
       return NextResponse.json({
         success: false,
-        error
+        error: error || 'User not found'
       }, { status: 401 });
     }
 
@@ -153,6 +151,13 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Update firstName and lastName if provided, or extract from fullName
+    if (updateData.fullName) {
+      const nameParts = updateData.fullName.split(' ');
+      updateData.firstName = nameParts[0];
+      updateData.lastName = nameParts.slice(1).join(' ') || '';
+    }
+
     // Update the user
     Object.assign(user, updateData);
     await user.save();
@@ -162,19 +167,18 @@ export async function PUT(request: NextRequest) {
       message: 'Profile updated successfully',
       data: {
         _id: user._id,
+        firstName: (user as any).firstName,
+        lastName: (user as any).lastName,
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
         profilePhoto: user.profilePhoto,
-        city: user.city,
-        state: user.state,
-        bio: user.bio,
-        businessName: user.businessName,
-        businessType: user.businessType,
-        businessDescription: user.businessDescription,
-        gstNumber: user.gstNumber,
-        experience: user.experience,
-        licenseNumber: user.licenseNumber,
+        dateOfBirth: (user as any).dateOfBirth,
+        gender: (user as any).gender,
+        address: (user as any).address,
+        city: (user as any).city,
+        state: (user as any).state,
+        bio: (user as any).bio,
       }
     });
 
@@ -191,10 +195,10 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { user, error } = await getAuthenticatedUser(request);
-    if (error) {
+    if (error || !user) {
       return NextResponse.json({
         success: false,
-        error
+        error: error || 'User not found'
       }, { status: 401 });
     }
 
